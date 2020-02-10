@@ -1,0 +1,10 @@
+#-e git+https://github.com/williballenthin/python-registry.git@c6e75fb2dce809ceba4590cd5a82ef4ac00e4abe#egg=python_registry # Sometimes downloads an older version 1.2.0 instead of 1.3.X
+-e git+https://github.com/msuhanov/yarp.git#egg=yarp
+python-registry
+pycrypto
+hexdump
+python-dateutil
+SQLAlchemy
+bitstring
+pympler
+psutil

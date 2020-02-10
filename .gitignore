@@ -1,0 +1,7 @@
+*.pyc
+*.geany
+*.nja
+*.vd
+__pycache__
+.idea
+.DS_Store
