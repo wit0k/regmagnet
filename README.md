@@ -110,7 +110,7 @@ Registry Handlers:
 
 Create a registry handler, which would base64 encode fields: value_name and value_content:
 
--rh 'b64_encode<field>value_name;value_content'
+-rh 'b64_encode\<field\>value_name;value_content'
 
 *Executing Plugins:*
 
