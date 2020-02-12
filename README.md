@@ -111,6 +111,22 @@ Query HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
 -s "examples/poweliks.dat" -p "parser -qk Software\Microsoft\Windows\CurrentVersion\Run"
 -s "examples/poweliks.dat" -f csv -p "parser -qk Software\Microsoft\Windows\CurrentVersion\Run"
 </pre>
+Result:
+* [...] means that i have removed the value content manually to improve readability [The content was very long]
+<pre>
+[+] Loading Registry Provider: python_registry
+[+] Parsing script arguments
+[+] Loading Plugin Manager
+[+] Searching for input files
+[+] Parsing input hives
+[+] Loading Plugin: parser
+[+] Executing plugins ...
+[+] Printing CSV formatted data
+parser,HKEY_CURRENT_USER,2014-09-04 13:12:25.703125,1,4,S-1-5-21-606747145-117609710-1801674531-500,Software\Microsoft\Windows\CurrentVersion\Run,fbdfabbccabsacfsfdsf,"C:\Documents and Settings\All Users\Application Data\fbdfabbccabsacfsfdsf.exe"
+parser,HKEY_CURRENT_USER,2014-09-04 13:12:25.703125,1,4,S-1-5-21-606747145-117609710-1801674531-500,Software\Microsoft\Windows\CurrentVersion\Run, a,rundll32.exe javascript:"\..\mshtml,RunHTMLApplication ";document.write("\74script language=jscript.encode>" [...]
+parser,HKEY_CURRENT_USER,2014-09-04 13:12:25.703125,1,4,S-1-5-21-606747145-117609710-1801674531-500,Software\Microsoft\Windows\CurrentVersion\Run,(default),#@~^ZXgAAA==W!x^DkKx [...] snAA==^#~@
+parser,HKEY_CURRENT_USER,2014-09-04 13:12:25.703125,1,4,S-1-5-21-606747145-117609710-1801674531-500,Software\Microsoft\Windows\CurrentVersion\Run,ctfmon.exe,C:\WINDOWS\system32\ctfmon.exe
+</pre>
 *Registry Handlers:*
 
 Print all registry handlers:
