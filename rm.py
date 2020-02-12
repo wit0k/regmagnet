@@ -1,4 +1,4 @@
-__version__ = '0.0.0.2'
+__version__ = '0.0.0.3'
 
 import logging
 import argparse
@@ -72,9 +72,9 @@ def main(argv):
     script_args.add_argument("-ffa", "--output-field-append", type=str, action='store', dest='extra_fields_to_print',
                              required=False, default=[], help="Append a format field to output format fields list")
 
-    script_args.add_argument("-oek", "--output-empty-keys", action='store_true', dest='output_empty_keys',
-                             required=False, default=False,
-                             help="Include the empty registry keys in the output")
+    script_args.add_argument("-eek", "--output-empty-keys", action='store_false', dest='output_empty_keys',
+                             required=False, default=True,
+                             help="Exclude keys without values from the output")
 
     script_args.add_argument("-rh", "--registry-handler", type=str, action='store', dest='registry_handlers',
                              required=False,

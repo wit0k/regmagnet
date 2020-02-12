@@ -1035,38 +1035,39 @@ class registry_parser(object):
 
     def convert_to_tab_output(self, items, _format_fields=None):
 
-        logger.debug('Converting registry items to "TAB" format')
-
-        _items = []
         _tab_items = []
-        _items_max_len = {}
 
+        if items:
+            logger.debug('Converting registry items to "TAB" format')
 
-        current_fields = self.get_current_format_fields(_format_fields)
+            _items = []
+            _items_max_len = {}
 
-        #  Move only required items to _items as per current_fields
-        for _item in items:
-            for _dict_item in _item.items():
-                row = {}
-                for _field_name in current_fields:
-                    row[_field_name] = _dict_item.get(_field_name, '')
+            current_fields = self.get_current_format_fields(_format_fields)
 
-                _items.append(row)
+            #  Move only required items to _items as per current_fields
+            for _item in items:
+                for _dict_item in _item.items():
+                    row = {}
+                    for _field_name in current_fields:
+                        row[_field_name] = _dict_item.get(_field_name, '')
 
-        #  Determine max len for every field
-        for _field_name in current_fields:
-            _len = max([len(str(x.get(_field_name, ''))) for x in _items])
+                    _items.append(row)
 
-            if _len > _items_max_len.get(_field_name, 0):
-                _items_max_len[_field_name] = _len
-
-        for _item in _items:
-            row = ''
+            #  Determine max len for every field
             for _field_name in current_fields:
-                _field_name_len = _items_max_len.get(_field_name, 0)
-                row += str(str(_item.get(_field_name, '')).ljust(_field_name_len)) + '  '
+                _len = max([len(str(x.get(_field_name, ''))) for x in _items])
 
-            _tab_items.append(row)
+                if _len > _items_max_len.get(_field_name, 0):
+                    _items_max_len[_field_name] = _len
+
+            for _item in _items:
+                row = ''
+                for _field_name in current_fields:
+                    _field_name_len = _items_max_len.get(_field_name, 0)
+                    row += str(str(_item.get(_field_name, '')).ljust(_field_name_len)) + '  '
+
+                _tab_items.append(row)
 
         return _tab_items
 
