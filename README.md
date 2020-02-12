@@ -127,6 +127,59 @@ parser,HKEY_CURRENT_USER,2014-09-04 13:12:25.703125,1,4,S-1-5-21-606747145-11760
 parser,HKEY_CURRENT_USER,2014-09-04 13:12:25.703125,1,4,S-1-5-21-606747145-117609710-1801674531-500,Software\Microsoft\Windows\CurrentVersion\Run,(default),#@~^ZXgAAA==W!x^DkKx [...] snAA==^#~@
 parser,HKEY_CURRENT_USER,2014-09-04 13:12:25.703125,1,4,S-1-5-21-606747145-117609710-1801674531-500,Software\Microsoft\Windows\CurrentVersion\Run,ctfmon.exe,C:\WINDOWS\system32\ctfmon.exe
 </pre>
+
+####Format fields
+
+You can control the output through format fields.
+Entire list of all format fields can be summoned with:  -s "examples/poweliks.dat" -pff
+<pre>
+ [+] plugin_name
+ [+] hive
+ [+] key
+ [+] values
+ [+] hive_header
+ [+] hive_file_path
+ [+] hive_file_name
+ [+] hive_obj
+ [+] hive_root
+ [+] hive_type
+ [+] hive_size
+ [+] hive_md5
+ [+] hive_user
+ [+] hive_mapping
+ [+] key_path
+ [+] key_path_unicode
+ [+] key_timestamp
+ [+] key_subkey_count
+ [+] key_value_count
+ [+] key_owner
+ [+] key_group
+ [+] key_permissions
+ [+] key_sddl
+ [+] value_path
+ [+] value_name
+ [+] value_name_unicode
+ [+] value_type
+ [+] value_type_str
+ [+] value_content
+ [+] value_content_str
+ [+] value_content_unicode
+ [+] value_size
+ [+] value_raw_data
+</pre>
+
+So let's say you want to display registry value name (value_name) and it's data (value_content):
+<pre>
+-s "examples/poweliks.dat" -ff "value_name,value_content" -p "parser -qk Software\Microsoft\Windows\CurrentVersion\Run"
+</pre>
+Result:
+<pre>
+fbdfabbccabsacfsfdsf,"C:\Documents and Settings\All Users\Application Data\fbdfabbccabsacfsfdsf.exe"
+ a,rundll32.exe javascript:"\..\mshtml,RunHTMLApplication ";document.write("\74script language=jscript.encode>" [...]
+(default),#@~^ZXgAAA==W!x^DkKx [...] snAA==^#~@
+ctfmon.exe,C:\WINDOWS\system32\ctfmon.exe
+</pre>
+
 *Registry Handlers:*
 
 Print all registry handlers:
@@ -267,43 +320,6 @@ Plugins can dynamically add new format fields(upon startup) to following objects
 parser.add_format_field(obj_name='hive', field_name='hive_hostname')
 parser.add_format_field(obj_name='key', field_name='key_hidden')
 parser.add_format_field(obj_name='value', field_name='comments')
-</pre>
-
-List of all format fields:  -s "/hives/offline_reg_file" -pff
-<pre>
- [+] plugin_name
- [+] hive
- [+] key
- [+] values
- [+] hive_header
- [+] hive_file_path
- [+] hive_file_name
- [+] hive_obj
- [+] hive_root
- [+] hive_type
- [+] hive_size
- [+] hive_md5
- [+] hive_user
- [+] hive_mapping
- [+] key_path
- [+] key_path_unicode
- [+] key_timestamp
- [+] key_subkey_count
- [+] key_value_count
- [+] key_owner
- [+] key_group
- [+] key_permissions
- [+] key_sddl
- [+] value_path
- [+] value_name
- [+] value_name_unicode
- [+] value_type
- [+] value_type_str
- [+] value_content
- [+] value_content_str
- [+] value_content_unicode
- [+] value_size
- [+] value_raw_data
 </pre>
 
 **Registry Handlers:**
