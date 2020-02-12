@@ -79,6 +79,38 @@ git pull
 
 Following code example covers the usage of <b>regmagnet</b> parameters.
 
+####Get Hive information
+Print information about given hive and its direct sub-keys:
+<pre>
+-s "examples/poweliks.dat" -p "parser -hi"
+</pre>
+Result:
+<pre>
+Mapping: HKEY_CURRENT_USER
+Root Key: $$$PROTO.HIV
+Hive: examples/poweliks.dat
+Hive type: NTUSER
+Subkeys: 
+     [*] $$$PROTO.HIV:
+     [+] AppEvents
+     [+] Console
+     [+] Control Panel
+     [+] Environment
+     [+] Identities
+     [+] Keyboard Layout
+     [+] Network
+     [+] Printers
+     [+] Software
+     [+] UNICODE Program Groups
+</pre>
+
+####Query keys
+Query HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
+* Both queries produce the same result, since -f csv is enabled by default
+<pre>
+-s "examples/poweliks.dat" -p "parser -qk Software\Microsoft\Windows\CurrentVersion\Run"
+-s "examples/poweliks.dat" -f csv -p "parser -qk Software\Microsoft\Windows\CurrentVersion\Run"
+</pre>
 *Registry Handlers:*
 
 Print all registry handlers:
@@ -284,7 +316,7 @@ Encrypt registry value content with a XOR key and encode it to base64:
  
  Script parameters:
  <pre>
- RegMagnet - Working with Microsoft Offline Registry Hives
+RegMagnet - Working with Microsoft Offline Registry Hives
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -308,12 +340,12 @@ Script arguments:
                         "value_path,value_content_str"
   -ffa EXTRA_FIELDS_TO_PRINT, --output-field-append EXTRA_FIELDS_TO_PRINT
                         Append a format field to output format fields list
-  -oek, --output-empty-keys
-                        Include the empty registry keys in the output
+  -eek, --output-empty-keys
+                        Exclude keys without values from the output
   -rh REGISTRY_HANDLERS, --registry-handler REGISTRY_HANDLERS
-                        Registry handler string: "handler_name<field>input_fie
-                        ld< param >param_n<rfield>result_field" like -rh
-                        "b64_encode<field>value_name;value_content" [Note:
+                        Registry handler string: "handler_name&lt;field&gt;input_fie
+                        ld&lt;param&gt;param_n&lt;rfield&gt;result_field" like -rh
+                        "b64_encode&lt;field&gt;value_name;value_content" [Note:
                         Input fields and params must be ; separated]
   -rhdp RH_DECODE_PARAM, --registry-handler-decode-param RH_DECODE_PARAM
                         Allow to specify the handler parameters in any of
