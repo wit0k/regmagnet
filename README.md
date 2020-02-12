@@ -3,13 +3,13 @@
 #### Description:
 
 RegMagnet (rm) is a python wrapper script for offline registry framework like:
-* python-registry (@williballenthin [FireEye]) [Default]
+* python-registry (@williballenthin) [Default registry provider]
 * yarp (@msuhanov) [Support for registry permissions related searches]
 
 This command-line utility is designed to slightly extend and facilitate framework’s capabilities. I wrote it once to improve my older regparser script.
-In general it’s used to parse any offline windows registry hives during malware hunting or forensic investigations.
+In general it is used to parse any offline windows registry hives during malware hunting or forensic investigations.
 
---> The right documentation yet to come (When time allows)
+**--> The right documentation yet to come (When time allows) <--**
 
 It comes with following major features: 
 
@@ -110,7 +110,7 @@ Registry Handlers:
 
 Create a registry handler, which would base64 encode fields: value_name and value_content:
 
--rh 'b64_encode\<field\>value_name;value_content'
+<pre>-rh "b64_encode&lt;field&gt;value_name;value_content"</pre>
 
 *Executing Plugins:*
 
