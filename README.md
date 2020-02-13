@@ -227,10 +227,10 @@ Let's use again format fields to get some more details:
 </pre>
 Result:
 <pre>
-1  4  Software\Microsoft\Windows\CurrentVersion\Run      	        b'[...]\x00\\\x00R\x00u\x00n\x00'                                
-1  4  Software\Microsoft\Windows\CurrentVersion\Run      	        b'[...]\x00\\\x00R\x00u\x00n\x00'                                
-1  4  Software\Microsoft\Windows\CurrentVersion\Run                 b'[...]\x00\\\x00R\x00u\x00n\x00'                                
-1  4  Software\Microsoft\Windows\CurrentVersion\Run                 b'[...]\x00\\\x00R\x00u\x00n\x00'                                
+1  4  Software\Microsoft\Windows\CurrentVersion\Run      	    b'[...]\x00\\\x00R\x00u\x00n\x00'                                
+1  4  Software\Microsoft\Windows\CurrentVersion\Run      	    b'[...]\x00\\\x00R\x00u\x00n\x00'                                
+1  4  Software\Microsoft\Windows\CurrentVersion\Run             b'[...]\x00\\\x00R\x00u\x00n\x00'                                
+1  4  Software\Microsoft\Windows\CurrentVersion\Run             b'[...]\x00\\\x00R\x00u\x00n\x00'                                
 0  0  Software\Microsoft\Windows\CurrentVersion\Run\\x00\x01\x01    b'[...]\x00\\\x00R\x00u\x00n\x00\\\x00\x01\x00\x00\x00\x01\x00'
 
 --> First 4 entries from the same key, claim that there are 4 values (which is indeed True) and that there is 1 subkey ...
