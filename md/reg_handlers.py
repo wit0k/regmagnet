@@ -9,8 +9,7 @@ import sys
 import math
 import gzip
 
-from os.path import isfile
-
+from os.path import isfile, abspath
 from itertools import cycle
 
 from Crypto.Cipher import AES
@@ -86,19 +85,20 @@ class handlers(object):
             elif isinstance(input_data, str):
                 mode = 'w'
 
+            output = abspath(output)
+
             loop = True
             index = 0
 
             while loop:
 
-                new_output = f'{index}-' + output
-
-                if isfile(new_output):
+                if isfile(output):
                     index += 1
+                    output += str(index)
                 else:
                     loop = False
 
-            with open(new_output, mode) as file:
+            with open(output, mode) as file:
                 file.write(input_data)
 
             return input_data
