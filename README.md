@@ -1,6 +1,8 @@
 # RegMagnet 0.0.0.3 [BETA]
 
-#### Description:
+* [Introduction](#introduction)
+* [Requirements](#minimum-requirements)
+## Introduction: <a name="introduction"></a>
 
 RegMagnet (rm) is a python wrapper script for offline registry framework like:
 * python-registry (@williballenthin) [Default registry provider]
@@ -31,7 +33,7 @@ It comes with following major features:
 
 Note: More details in **README.pdf**
 
-#### Minimum Requirements:
+## Minimum Requirements:  <a name="minimum-requirements"></a>
 
 * Python 3.7 Framework
 * Dependencies from requirements.txt
