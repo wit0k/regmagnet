@@ -10,7 +10,9 @@
     - [Format fields](#format-fields)
     - [Output format](#output-format)
     - [Key information](#key-info)
-
+    - [Query keys(Recursively)](#query-keys-r)
+    - [Query values](#query-values)
+    
 ## Introduction: <a name="introduction"></a>
 
 RegMagnet (rm) is a python wrapper script for offline registry framework like:
@@ -234,6 +236,8 @@ Subkeys:
      [+]  
 </pre>
 
+### Query Keys (Recursively): <a name="query-keys-r"></a>
+
 Let's use again format fields to get some more details:
 <pre>
 -s "examples/poweliks.dat" -ff "key_subkey_count,key_value_count,key_path,key_path_unicode" -f tab -p "parser -qkw Software\Microsoft\Windows\CurrentVersion\Run\*"
@@ -253,7 +257,8 @@ Result:
 --> -qkw: allows for wildcard querying, so i was able to make \Run\* to indicate to scan the \Run and its subkeys
 </pre>
 
-####Query registry value:
+### Query Value: <a name="query-values"></a>
+
 Let's say you want to query default registry value in the Run key, and get its value_name and value_content only.
 <pre>
 -s "examples/poweliks.dat" -ff "value_name,value_content" -f json -p "parser -qv Software\Microsoft\Windows\CurrentVersion\Run\(default)"
