@@ -9,7 +9,7 @@
     - [Query keys](#query-keys)
     - [Format fields](#format-fields)
     - [Output format](#output-format)
-    - [Hive information](#key-info)
+    - [Key information](#key-info)
 
 ## Introduction: <a name="introduction"></a>
 
