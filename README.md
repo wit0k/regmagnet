@@ -464,7 +464,7 @@ Script arguments:
                         Print available registry handlers
  </pre>
  
-## TO-DO: <a name="to-do></a>
+## TO-DO: <a name="to-do"></a>
 * Continue working on security_descriptor, to obtain the key_sddl field 
 * Make sure that regex, cannot be used in conjunction with *
 * Use the list of registry_item objects to create winreg data and sqlite data (instead of a list of dicts, coming from registry_item.items())
