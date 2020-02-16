@@ -10,7 +10,7 @@
     - [Format fields](#format-fields)
     - [Output format](#output-format)
     - [Key information](#key-info)
-    - [Query keys(Recursively)](#query-keys-r)
+    - [Query keys (Recursively)](#query-keys-r)
     - [Query values](#query-values)
     
 ## Introduction: <a name="introduction"></a>
