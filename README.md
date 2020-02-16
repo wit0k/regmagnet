@@ -19,7 +19,9 @@
     - [Calling Functions](#code-usage-functions) 
     - [Dynamic Format Fields](#code-usage-dynamic-ffields) 
     - [Dynamic Registry Handlers](#code-usage-registry-handlers) 
-
+* [Command-Line](#cmd-params) 
+* [TO-DO](#to-do)
+   
 ## Introduction: <a name="introduction"></a>
 
 RegMagnet (rm) is a python wrapper script for offline registry framework like:
@@ -408,9 +410,8 @@ Encrypt registry value content with a XOR key and encode it to base64:
     items.extend(parser.query_value(value_path=r'Microsoft\Windows\CurrentVersion\Run\RTHDVCPL', hive=_hive_file, reg_handler=reg_handler))   
 </pre>
 
-**Command-line parameters:**
- 
- <pre>
+## Command-line parameters <a name="cmd-params></a>
+<pre>
 * Print script params: -h
 * Print plugin specific params:
      -s "/hives/offline_reg_file" -p "parser -h"
@@ -463,8 +464,7 @@ Script arguments:
                         Print available registry handlers
  </pre>
  
-#### TO DO:
+## TO-DO: <a name="to-do></a>
 * Continue working on security_descriptor, to obtain the key_sddl field 
 * Make sure that regex, cannot be used in conjunction with *
 * Use the list of registry_item objects to create winreg data and sqlite data (instead of a list of dicts, coming from registry_item.items())
-* Add json output format
