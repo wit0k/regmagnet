@@ -14,7 +14,7 @@
     - [Query values](#query-values)
     - [Registry Handlers](#registry-handlers)
     - [Plugins](#plugins-main)
-    - [Baseline/Whitelist](#baseline-main)
+    - [Baseline\/Whitelist](#baseline-main)
 * [Code Usage](#code-usage)   
     - [Calling Functions](#code-usage-functions) 
 
@@ -339,8 +339,7 @@ Following command would execute all specified plugins against all loaded hives:
 </pre>
 
 
-### Baseline: <a name="baseline-main></a>:
-
+## Baseline: <a name="baseline-main"></a>
 It's still in beta version (a feature from regparser, with low attention rate, but i still think that it's usefull)
 
 * Create a baseline file (Whitelisted entries) on vanilla-clean machine: 
