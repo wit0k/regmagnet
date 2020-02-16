@@ -15,8 +15,9 @@
     - [Registry Handlers](#registry-handlers)
     - [Plugins](#plugins-main)
     - [Baseline/Whitelist](#baseline-main)
+* [Code Usage](#code-usage)   
+    - [Calling Functions](#code-usage-functions) 
 
-* [Usage](#code-usage)   
 
 ## Introduction: <a name="introduction"></a>
 
@@ -353,8 +354,7 @@ It's still in beta version (a feature from regparser, with low attention rate, b
 
 ## Code Usage: <a name="code-usage"></a>
 
-**Functions usage:**
-
+## Functions: <a name="code-usage-functions"></a>
 RegMagnet functions can be called via **exec_action** which accepts a function name and parameters:
 <pre>
 items = []
