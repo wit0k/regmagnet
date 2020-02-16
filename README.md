@@ -8,6 +8,8 @@
     - [Hive information](#hive-info)
     - [Query keys](#query-keys)
     - [Format fields](#format-fields)
+    - [Output format](#output-format)
+    - [Hive information](#key-info)
 
 ## Introduction: <a name="introduction"></a>
 
@@ -191,7 +193,7 @@ fbdfabbccabsacfsfdsf,"C:\Documents and Settings\All Users\Application Data\fbdfa
 ctfmon.exe,C:\WINDOWS\system32\ctfmon.exe
 </pre>
 
-####Output format
+### Output Format: <a name="output-format"></a>
 Supported output formats: json,csv,tab,winreg,sqlite
 * Of course if you choose sqlite, it would print csv instead, but if specified with option -o, it would save the output to SQLite database
 * If winreg is specified, it would print in Windows Registry format (So the output can be imported in Windows Registry)
@@ -216,7 +218,7 @@ Windows Registry Editor Version 5.00
 "ctfmon.exe"="C:\WINDOWS\system32\ctfmon.exe"    
 </pre>
 
-####Get information about a registry key:
+### Key Information: <a name="key-info"></a>
 
 <pre>
 -s "examples/poweliks.dat" -p "parser -ki Software\Microsoft\Windows\CurrentVersion\Run"
