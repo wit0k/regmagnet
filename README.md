@@ -2,6 +2,13 @@
 
 * [Introduction](#introduction)
 * [Requirements](#minimum-requirements)
+* [Install](#install)
+* [Update](#update)
+* [Usage](#usage)
+    - [Hive information](#hive-info)
+    - [Query keys](#query-keys)
+    - [Format fields](#format-fields)
+
 ## Introduction: <a name="introduction"></a>
 
 RegMagnet (rm) is a python wrapper script for offline registry framework like:
@@ -39,7 +46,7 @@ Note: More details in **README.pdf**
 * Dependencies from requirements.txt
 * Operating system:  Windows, Linux, MacOS, Cygwin
 
-***Install***:
+## Install: <a name="install"></a>
 <pre>
 mkdir /tools  # Adjust the path as required 
 mkdir /venvs  # Adjust the path as required 
@@ -71,17 +78,18 @@ To remove proxy support:
     git config --global --unset http.proxy
 </pre>
 
-***Update***:
+## Update: <a name="update"></a>
 <pre>
 cd /tools/regmagnet
 git pull
 </pre>
 
-***Usage***:
+## Usage: <a name="usage"></a>
 
 Following code example covers the usage of <b>regmagnet</b> parameters.
 
-####Get Hive information
+### Hive information: <a name="hive-info"></a>
+
 Print information about given hive and its direct sub-keys:
 <pre>
 -s "examples/poweliks.dat" -p "parser -hi"
@@ -106,7 +114,8 @@ Subkeys:
      [+] UNICODE Program Groups
 </pre>
 
-####Query keys
+### Query keys: <a name="query-keys"></a>
+
 Query HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run
 * Both queries produce the same result, since -f csv is enabled by default
 <pre>
@@ -130,7 +139,7 @@ parser,HKEY_CURRENT_USER,2014-09-04 13:12:25.703125,1,4,S-1-5-21-606747145-11760
 parser,HKEY_CURRENT_USER,2014-09-04 13:12:25.703125,1,4,S-1-5-21-606747145-117609710-1801674531-500,Software\Microsoft\Windows\CurrentVersion\Run,ctfmon.exe,C:\WINDOWS\system32\ctfmon.exe
 </pre>
 
-####Format fields
+### Format fields: <a name="format-fields"></a>
 
 You can control the output through format fields.
 Entire list of all format fields can be summoned with:  -s "examples/poweliks.dat" -pff
