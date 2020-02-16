@@ -15,7 +15,9 @@
     - [Registry Handlers](#registry-handlers)
     - [Plugins](#plugins-main)
     - [Baseline/Whitelist](#baseline-main)
-    
+
+* [Usage](#code-usage)   
+
 ## Introduction: <a name="introduction"></a>
 
 RegMagnet (rm) is a python wrapper script for offline registry framework like:
@@ -349,7 +351,7 @@ It's still in beta version (a feature from regparser, with low attention rate, b
   Note: -b force the plugin to load a baseline file (default: baseline/%name_of_plugin.bl%)
   </pre>
 
-***Plugins***:
+## Code Usage: <a name="code-usage"></a>
 
 **Functions usage:**
 
