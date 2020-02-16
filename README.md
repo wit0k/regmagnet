@@ -410,7 +410,7 @@ Encrypt registry value content with a XOR key and encode it to base64:
     items.extend(parser.query_value(value_path=r'Microsoft\Windows\CurrentVersion\Run\RTHDVCPL', hive=_hive_file, reg_handler=reg_handler))   
 </pre>
 
-## Command-line parameters <a name="cmd-params></a>
+## Command-line parameters <a name="cmd-params"></a>
 <pre>
 * Print script params: -h
 * Print plugin specific params:
