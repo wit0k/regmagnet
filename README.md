@@ -328,7 +328,6 @@ function log(l){try{x=new ActiveXObject("Msxml2.ServerXMLHTTP.6.0");x.open("GET"
 </pre>
 
 ## Plugins: <a name="plugins-main></a>
-
 <pre>
 -s "examples/poweliks.dat" -p "plugin_name < plugin_params >,plugin_name < plugin_params >"
 </pre>
