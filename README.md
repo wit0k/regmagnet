@@ -17,7 +17,8 @@
     - [Baseline\/Whitelist](#baseline-main)
 * [Code Usage](#code-usage)   
     - [Calling Functions](#code-usage-functions) 
-
+    - [Dynamic Format Fields](#code-usage-dynamic-ffields) 
+    - [Dynamic Registry Handlers](#code-usage-registry-handlers) 
 
 ## Introduction: <a name="introduction"></a>
 
@@ -382,8 +383,7 @@ Currently following functions are exposed by a string:
     }
 </pre>
 
-**Format fields:**
-
+## Dynamic Format fields: <a name="code-usage-dynamic-ffields"></a>
 Plugins can dynamically add new format fields(upon startup) to following objects: registry_hive, registry_key and registry_value respectively, by calling following parser function:
 
 *Note*: IF you specify the same field_name for all obj_names, only the field for obj_name="value" would be taken into account upon creation of registry_item object. 
@@ -394,8 +394,8 @@ parser.add_format_field(obj_name='key', field_name='key_hidden')
 parser.add_format_field(obj_name='value', field_name='comments')
 </pre>
 
-**Registry Handlers:**
 
+## Dynamic Registry Handlers: <a name="code-usage-registry-handlers"></a>
 <pre>
 Convert registry value name and value content to base64:
 
