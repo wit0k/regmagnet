@@ -300,6 +300,17 @@ class handlers(object):
 
         decription = 'utf8_dump() -> Dumps the unicode string and converts it to human readable format'
 
+
+        def ExtractStringsASCII(data): # From https://github.com/DidierStevens/DidierStevensSuite/blob/2f668a9c20cb276e69507ff39eb7e0d3fd9f580b/base64dump.py
+            REGEX_STANDARD = '[\x09\x20-\x7E]'
+            regex = REGEX_STANDARD + '{%d,}'
+            return re.findall(regex % 4, data)
+
+        def ExtractStringsUNICODE(data): # From: https://github.com/DidierStevens/DidierStevensSuite/blob/2f668a9c20cb276e69507ff39eb7e0d3fd9f580b/base64dump.py
+            REGEX_STANDARD = '[\x09\x20-\x7E]'
+            regex = '((' + REGEX_STANDARD + '\x00){%d,})'
+            return [foundunicodestring.replace('\x00', '') for foundunicodestring, dummy in re.findall(regex % 4, data)]
+
         def utf8_dump(input_data):
 
             if not isinstance(input_data, str):
@@ -315,12 +326,15 @@ class handlers(object):
                         """
                 input_data = str(input_data)
 
-            REGEX_STANDARD = '[\x09\x20-\x7E]'
-            regex = '((' + REGEX_STANDARD + '\x00){%d,})'
-            result =  [foundunicodestring.replace('\x00', '') for foundunicodestring, dummy in
-                        re.findall(regex % 4, input_data)]
+            ascii_str = handlers.utf8_dump.ExtractStringsASCII(input_data)
+            unicode_str = handlers.utf8_dump.ExtractStringsUNICODE(input_data)
 
-            return result
+            if ascii_str and unicode_str:
+                input_data = '|'.join(ascii_str + unicode_str)
+            elif ascii_str:
+                input_data = '|'.join(ascii_str)
+            elif unicode_str:
+                input_data = '|'.join(unicode_str)
 
             return input_data
 
@@ -351,6 +365,17 @@ class handlers(object):
                     return data[0:stop]
                 else:
                     return data
+
+            return data
+
+    class str_replace:
+
+        decription = 'str_replace(str_to_replace, replacement_str) -> String replace'
+
+        def str_replace(data, str_to_replace_regex_pattern, replacement_str=''):
+
+            if isinstance(data, str):
+                data = re.sub(str_to_replace_regex_pattern, replacement_str, data, re.IGNORECASE)
 
             return data
 

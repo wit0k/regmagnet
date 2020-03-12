@@ -10,6 +10,8 @@ import logging
 from md.plugin import plugin
 from md.args import build_registry_handler
 
+from datetime import datetime
+
 logger = logging.getLogger('regmagnet')
 
 QUERY_KEY_LIST = [
@@ -49,12 +51,21 @@ class macro(plugin):
 
             def macro_executed(input_data):
 
+                # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
+                EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+                HUNDREDS_OF_NANOSECONDS = 10000000
+
                 if input_data:
                     if isinstance(input_data, bytes):
+
+                        _filetime = int.from_bytes(input_data[0:8], byteorder='little',signed=True)
+                        _datetime = datetime.utcfromtimestamp((_filetime - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+                        _datetime_str = _datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
+
                         if input_data.endswith(b'\xff\xff\xff\x7f'):
-                            return 'Macro executed'
+                            return 'Macro: Executed | Created: %s' % _datetime_str
                         else:
-                            return 'Macro not executed'
+                            return 'Macro: NOT Executed | Created %s' % _datetime_str
 
                     return input_data
 
@@ -79,7 +90,7 @@ class macro(plugin):
         items = []
 
         _plugin_reg_handler = build_registry_handler(registry_parser=self.parser,
-                                                     registry_handlers="utf8_dump<field>value_name,unescape_url<field>value_name,macro_executed<field>value_content",
+                                                     registry_handlers="utf8_dump<field>value_name,unescape_url<field>value_name,str_replace<param>file:\/\/\/|file:\/\/<field>value_name,macro_executed<field>value_content",
                                                      custom_handlers=macro.custom_registry_handlers)
 
         registry_handler = self.choose_registry_handler(main_reg_handler=registry_handler, plugin_reg_handler=_plugin_reg_handler)
