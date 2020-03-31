@@ -1,4 +1,4 @@
-__version__ = '0.0.0.4'
+__version__ = '0.0.0.5'
 
 import logging
 import argparse
@@ -28,6 +28,7 @@ chdir(dirname(abspath(__file__)))
     Enhancements: 
     - Continue working on security_descriptor, to obtain the key_sddl field 
     - Make sure that regex, cannot be used in conjunction with *
+    - office/macro: Implement remaining stuff: https://ad-pdf.s3.amazonaws.com/Microsoft_Office_2007-2010_Registry_ArtifactsFINAL.pdf
     - Use the list of registry_item objects to create winreg data and sqlite data (instead of a list of dicts, coming from registry_item.items())
     - Add json output format
     - ...

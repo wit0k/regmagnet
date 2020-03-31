@@ -7,6 +7,10 @@ http://az4n6.blogspot.com/2016/02/more-on-trust-records-macros-and.html
 """
 
 import logging
+import struct
+from datetime import datetime
+from datetime import timedelta
+
 from md.plugin import plugin
 from md.args import build_registry_handler
 
@@ -51,6 +55,55 @@ class macro(plugin):
 
             def macro_executed(input_data):
 
+                def getFileTime(buffer): #wit0k, previous function
+
+                    _filetime = int.from_bytes(input_data[0:8], byteorder='little', signed=True)
+                    _datetime = datetime.utcfromtimestamp((_filetime - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+                    _datetime_str = _datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+                    return _datetime_str
+
+                def convert_filetime_to_systemtime(filetime):
+                    EPOCH_AS_FILETIME = 116444736000000000;
+                    HUNDREDS_OF_NANOSECONDS = 10000000
+                    ft_dec = struct.unpack('>Q', filetime)[0]
+                    dt = datetime.utcfromtimestamp((ft_dec - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+                    return dt.strftime('%Y-%m-%d %H:%M:%S.%f')
+
+                def convert_filetime_str_to_systemtime(filetime_str):
+                    filetime_bytes = bytes.fromhex(filetime_str)
+                    return convert_filetime_to_systemtime(filetime_bytes)
+
+                def time_difference(filetime1, filetime2):
+                    filetime1_bytes = bytes.fromhex(filetime1)
+                    filetime2_bytes = bytes.fromhex(filetime2)
+                    time_limit = bytes.fromhex('FFFFFFFFFFFFFFFF')
+                    ft1_dec = struct.unpack('>Q', filetime1_bytes)[0]
+                    ft2_dec = struct.unpack('>Q', filetime2_bytes)[0]
+                    ft_limit_dec = struct.unpack('>Q', time_limit)[0]
+                    res = ft1_dec - ft2_dec
+                    # two's complement?
+                    res = ft_limit_dec - res + 1
+                    res = struct.pack('>Q', res)
+                    return res
+
+                def estimate_access_time(access_time):
+                    HUNDREDS_OF_NANOSECONDS = 10000000
+                    access_time = b'\x00\x00\x00\x00' + access_time
+                    multiplier = bytearray.fromhex('E5109EC205D7BEA7')
+                    access_time_dec = struct.unpack('>Q', access_time)[0]
+                    multiplier_dec = struct.unpack('>Q', multiplier)[0]
+                    access_time_dec = access_time_dec << (64 + 29)
+                    access_time_dec = access_time_dec // multiplier_dec
+                    access_time_dec /= HUNDREDS_OF_NANOSECONDS
+                    return datetime.utcfromtimestamp(access_time_dec).strftime('%Y-%m-%d %H:%M:%S.%f')
+
+                def get_time_zone(timezone):
+                    HUNDREDS_OF_NANOSECONDS = 10000000
+                    ft_zone_dec = struct.unpack('>q', timezone)[0]
+                    res = ft_zone_dec // HUNDREDS_OF_NANOSECONDS
+                    return timedelta(seconds=res)
+
                 # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
                 EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
                 HUNDREDS_OF_NANOSECONDS = 10000000
@@ -58,14 +111,16 @@ class macro(plugin):
                 if input_data:
                     if isinstance(input_data, bytes):
 
-                        _filetime = int.from_bytes(input_data[0:8], byteorder='little',signed=True)
-                        _datetime = datetime.utcfromtimestamp((_filetime - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
-                        _datetime_str = _datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
+                        bin_data = bytes(reversed(input_data))
+                        created_time = convert_filetime_to_systemtime(bin_data[16:])
+                        created_time_zone = get_time_zone(bin_data[8:16])
+                        estimated_access_time = estimate_access_time(bin_data[4:8])
+                        # flag_int = struct.unpack('>I', bin_data[:4])[0]
 
                         if input_data.endswith(b'\xff\xff\xff\x7f'):
-                            return 'Macro: Executed | Created: %s' % _datetime_str
+                            return 'Macro: Executed | Created %s | Estimated_access_time: %s | Timezone: %s ' % (created_time, estimated_access_time, created_time_zone)
                         else:
-                            return 'Macro: NOT Executed | Created %s' % _datetime_str
+                            return 'Macro: NOT Executed | Created %s | Estimated_access_time: %s | Timezone: %s ' % (created_time, estimated_access_time, created_time_zone)
 
                     return input_data
 
