@@ -1,5 +1,3 @@
-__version__ = '0.0.0.7'
-
 import logging
 import argparse
 import sys
@@ -24,8 +22,10 @@ chdir(dirname(abspath(__file__)))
 """ 
     Plugins\Handlers:
     - forensics plugin: https://www.dfir.training/resources/downloads/windows-registry
-    
+    - -p recentdocs 
+
     Enhancements: 
+    - Implement --version
     - Continue working on security_descriptor, to obtain the key_sddl field 
     - Make sure that regex, cannot be used in conjunction with *
     - office/macro: Implement remaining stuff: https://ad-pdf.s3.amazonaws.com/Microsoft_Office_2007-2010_Registry_ArtifactsFINAL.pdf
@@ -47,6 +47,9 @@ def main(argv):
 
     script_args.add_argument("-rp", "--registry-provider", action='store', dest='default_registry_provider', required=False,
                              default='python_registry', help='Specify the default registry provider to load (Default: -rp "python_registry")')
+
+    script_args.add_argument("--version", action='store_true', dest='print_version', default=False,
+                             required=False, help="Prints info about the tool")
 
     script_args.add_argument("-v", "--verbose", action='store_true', dest='verbose_mode', default=False,
                              required=False, help="Enables verbose logging")
@@ -103,7 +106,12 @@ def main(argv):
 
     logger.info('Starting RegMagnet - ver: %s [Made by: %s]' % (__version__, __author__))
     ###########################################################################
-    #  Load parser and selected registry provider (Only one can be selected)  #
+    #  Print tool info (if requested)
+    if args.print_version:
+        print(CYELLOW + '%s -> ver: %s' % ('RegMagnet', __version__) + CEND)
+        exit(0)
+
+        #  Load parser and selected registry provider (Only one can be selected)  #
     parser = registry_parser(registry_provider_name=args.default_registry_provider, verbose_mode=args.verbose_mode)
 
     # If parser is not initialized, Exit.
