@@ -101,6 +101,18 @@ def main(argv):
                              required=False, default=False,
                              help="Print available registry handlers")
 
+    script_args.add_argument("-wif", "--winreg-import-file", action='store', dest='winreg_import_file',
+                             required=False, default='',
+                             help="The buffer to be imported into .reg file")
+
+    script_args.add_argument("-wft", "--winreg-import-file-type", action='store', dest='winreg_import_file_type',
+                             required=False, default='REG_BIN',
+                             help="The buffer to be imported into .reg file")
+
+    script_args.add_argument("-wdp", "--winreg-destination-path", action='store', dest='destination_key_value_path',
+                             required=False, default='HKEY_CURRENT_USER\SOFTWARE\SubKey\BinaryValue',
+                             help="Full Windows Registry Key/Value path")
+
     args = argsparser.parse_args()
     argc = argv.__len__()
 
@@ -122,6 +134,12 @@ def main(argv):
     ###########################################################################
     #  Parse arguments to expected format                                     #
     args = parse_args(args, parser, _Logger)
+
+    #  Process WinReg Helpers
+    if args.winreg_import_file:
+        from helpers.winreg import buffer_to_winreg
+
+        buffer_to_winreg(args.winreg_import_file, args.winreg_import_file_type, args.destination_key_value_path, args.output_file)
 
     ###########################################################################
     #  Load the Plugin Manager                                                #

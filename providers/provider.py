@@ -227,8 +227,6 @@ class registry_provider(object):
                         all.append(str(_val.__hash__()))
 
                     self.values_hash = hash("".join(all))
-
-
         def add(self, _plugin_name, _registry_hive, _registry_key, _registry_values=None, **custom_fields):
 
             if _registry_values is None: _registry_values = []
