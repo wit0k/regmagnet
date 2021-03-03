@@ -243,6 +243,21 @@ class handlers(object):
 
             return input_data
 
+    class key_name:
+
+        decription = 'key_name() -> Returns a key name from key_path'
+
+        def key_name(input_data):
+
+            if not isinstance(input_data, str):
+                return input_data
+            else:
+                if "\\" in input_data:
+                    _, __, kname = input_data.rpartition('\\')
+                    return kname
+                else:
+                    return input_data
+
     class shexdump:
 
         #  https://raw.githubusercontent.com/ActiveState/code/master/recipes/Python/142812_Hex_dumper/recipe-142812.py
