@@ -239,7 +239,7 @@ class cit(plugin):
 
                 return input_data
 
-    def run(self, hive, registry_handler=None) -> list:
+    def run(self, hive, registry_handler=None, args=None) -> list:
 
         if not hive:
             logger.warning('Unsupported hive file')

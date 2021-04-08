@@ -42,7 +42,7 @@ class rdp(plugin):
     def __init__(self, params=None, parser=None):
         pass
 
-    def run(self, hive, registry_handler=None) -> list:
+    def run(self, hive, registry_handler=None, args=None) -> list:
         """ Execute plugin specific actions on the hive file provided
                     - The return value should be the list of registry_provider.registry_item objects """
 

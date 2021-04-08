@@ -119,7 +119,7 @@ class anomaly(plugin):
                                                   reg_handler=reg_handler, custom_fields={'entropy': value_entropy})
 
 
-    def run(self, hive, registry_handler=None) -> list:
+    def run(self, hive, registry_handler=None, args=None) -> list:
 
         if not hive:
             logger.warning('Unsupported hive file')

@@ -57,7 +57,7 @@ class recentdocs(plugin):
         self.parser = parser
         self.add_format_fields(field_names=['evaluation'])
 
-    def run(self, hive, registry_handler=None) -> list:
+    def run(self, hive, registry_handler=None, args=None) -> list:
         """ Execute plugin specific actions on the hive file provided
                     - The return value should be the list of registry_provider.registry_item objects """
 

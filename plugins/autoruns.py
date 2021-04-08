@@ -191,7 +191,7 @@ class autoruns(plugin):
     parser = None  # Represents the registry_parser object
     config_data = {}  # Contains the json data loaded from config_file (If any was specified and properly created)
 
-    def run(self, hive, registry_handler=None) -> list:
+    def run(self, hive, registry_handler=None, args=None) -> list:
         """ Execute plugin specific actions on the hive
                     - The return value should be the list of registry_provider.registry_item objects """
 
