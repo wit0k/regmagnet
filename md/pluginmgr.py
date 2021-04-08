@@ -124,12 +124,12 @@ class plugin_manager(object):
         # the name.
         return iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
 
-    def run(self, plugin, registry_hive, registry_handler=None):
+    def run(self, plugin, registry_hive, registry_handler=None, args=None):
 
         logger.debug('Execute: %s -> Details: %s' % (plugin[0], plugin[1]))
         plugin_object = plugin[1].get('plugin_object', None)
         if plugin_object:
-            return plugin_object.run(hive=registry_hive, registry_handler=registry_handler)
+            return plugin_object.run(hive=registry_hive, registry_handler=registry_handler, args=args)
         else:
             logger.error('The plugin: %s does not have the plugin_object initialized!' % plugin[0])
             return []

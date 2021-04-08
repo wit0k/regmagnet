@@ -68,7 +68,7 @@ class plugin(object):
         self.load_baseline()
 
 
-    def run(self, hive, registry_handler=None) -> list:
+    def run(self, hive, registry_handler=None, args=None) -> list:
         """ Execute plugin specific actions on the hive object  provided
             - The return value should be the list of registry_provider.registry_item objects """
 

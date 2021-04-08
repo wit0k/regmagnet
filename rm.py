@@ -170,7 +170,7 @@ def main(argv):
             for _entry in input_hives.values():
                 hive = _entry.get('hive')
                 # Execute specific plugin for each _hive_file
-                _result = pluginmgr.run(plugin=_plugin, registry_hive=hive, registry_handler=args.registry_handlers)
+                _result = pluginmgr.run(plugin=_plugin, registry_hive=hive, registry_handler=args.registry_handlers, args=args)
                 if _result:
                     items.extend(_result)
 
