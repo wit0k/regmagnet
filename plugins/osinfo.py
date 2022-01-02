@@ -31,7 +31,7 @@ class osinfo(plugin):
     """ Standard expected variables  """
     author = 'wit0k'
     name = 'osinfo'
-    description = 'Prints OS version, which can be used to search for Volatility profile, or other tasks. Use -ffa evaluation'
+    description = 'Prints values related to OS version and evaluates them, and fill "evaluation" format field'
     config_file = ''  # IF it's empty/None, the config_data dictionary would not be auto-loaded
 
     """ Variables initialized by the plugin manager """

@@ -468,3 +468,8 @@ Script arguments:
 * Continue working on security_descriptor, to obtain the key_sddl field 
 * Make sure that regex, cannot be used in conjunction with *
 * Use the list of registry_item objects to create winreg data and sqlite data (instead of a list of dicts, coming from registry_item.items())
+
+## Recent updates:
+
+Autoruns:
+r"regex(ControlSet00[0-4])\Control\LsaExtensionConfig\LsaSrv\Extensions", # https://twitter.com/0gtweet/status/1476286368385019906?t=hfWwMUjghwgeIFr9JuGtWQ&s=03

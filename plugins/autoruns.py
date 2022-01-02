@@ -87,7 +87,8 @@ QUERY_VALUE_LIST = [
     r"Microsoft\Windows NT\CurrentVersion\AeDebugProtected\ProtectedDebugger",  # http://www.hexacorn.com/blog/2019/10/11/beyond-good-ol-run-key-part-119/
     r"Microsoft\Windows NT\CurrentVersion\Ports",  # https://windows-internals.com/printdemon-cve-2020-1048/
     r"regex(ControlSet00[0-4])\Services\regex(.*)\NetworkProvider\ProviderPath",  # https://github.com/gtworek/PSBits/tree/master/PasswordStealing/NPPSpy"
-    r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\regex(.*)\VerifierDlls" # https://cybellum.com/doubleagentzero-day-code-injection-and-persistence-technique/
+    r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\regex(.*)\VerifierDlls", # https://cybellum.com/doubleagentzero-day-code-injection-and-persistence-technique/
+    r"regex(ControlSet00[0-4])\Control\LsaExtensionConfig\LsaSrv\Extensions", # https://twitter.com/0gtweet/status/1476286368385019906?t=hfWwMUjghwgeIFr9JuGtWQ&s=03
 ]
 
 QUERY_KEY_LIST = [
