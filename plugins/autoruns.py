@@ -18,13 +18,7 @@ QUERY_VALUE_LIST = [
     r"ControlSet001\Control\SafeBoot\AlternateShell",
     r"ControlSet002\Control\SafeBoot\AlternateShell",
     r"ControlSet003\Control\SafeBoot\AlternateShell",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\System",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\UIHost",
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\System",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\System",  # https://attack.mitre.org/techniques/T1547/004/, # Manual_CS.txt (#ContiLeaks)
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
@@ -39,10 +33,42 @@ QUERY_VALUE_LIST = [
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Startup",
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StopScreenSaver",
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Unlock",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\*\DLLName",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\System",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\UIHost",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Lock",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logoff",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logon",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Shutdown",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StartScreenSaver",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StartShell",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Startup",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StopScreenSaver",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Unlock",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\*\DLLName",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\System",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\UIHost",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Lock",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logoff",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logon",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Shutdown",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StartScreenSaver",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StartShell",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Startup",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StopScreenSaver",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Unlock",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\*\DLLName",
     r"Microsoft\Windows\CurrentVersion\ShellServiceObjectDelayLoad",  # Need to check if value or a key
     r"Wow6432Node\Microsoft\Active Setup\Installed Components\*\StubPath",
     r"Microsoft\Active Setup\Installed Components\*\StubPath",
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\*\DLLName",
     r"Microsoft\Office\*\*\Options\OPEN",  # https://twitter.com/william_knows/status/909788804696944642/photo/1
     r"Software\Microsoft\Office\*\Common\AdditionalActionsDLL",
     r"Microsoft\Windows NT\CurrentVersion\Windows\AppInit_DLLs",
@@ -89,6 +115,10 @@ QUERY_VALUE_LIST = [
     r"regex(ControlSet00[0-4])\Services\regex(.*)\NetworkProvider\ProviderPath",  # https://github.com/gtworek/PSBits/tree/master/PasswordStealing/NPPSpy"
     r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\regex(.*)\VerifierDlls", # https://cybellum.com/doubleagentzero-day-code-injection-and-persistence-technique/
     r"regex(ControlSet00[0-4])\Control\LsaExtensionConfig\LsaSrv\Extensions", # https://twitter.com/0gtweet/status/1476286368385019906?t=hfWwMUjghwgeIFr9JuGtWQ&s=03
+    r"Software\Microsoft\Office test\Special\Perf", # https://attack.mitre.org/techniques/T1137/002/, # Manual_CS.txt (#ContiLeaks)
+    r"Microsoft\Office test\Special\Perf", # https://attack.mitre.org/techniques/T1137/002/, # Manual_CS.txt (#ContiLeaks)
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows\AppInit_DLLs", # https://attack.mitre.org/techniques/T1546/010/, # Manual_CS.txt (#ContiLeaks)
+    r"Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*\MonitorProcess", # https://attack.mitre.org/techniques/T1546/012/, # Manual_CS.txt (#ContiLeaks) .. This must be enabled to make it work reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*" /v ReportingMode /t REG_DWORD /d 1
 ]
 
 QUERY_KEY_LIST = [
@@ -173,7 +203,9 @@ QUERY_KEY_LIST = [
     r'Wow6432Node\Microsoft\Windows\CurrentVersion\Installer\RunOnceEntries',
     r'Software\Microsoft\Run' #  https://brica.de/alerts/alert/public/1250345/evading-av-with-javascript-obfuscation/,
     r'Software\Microsoft\Microsoft SQL Server\*\Tools\Shell\Addins',
-    r'Microsoft\Microsoft SQL Server\*\Tools\Shell\Addins'
+    r'Microsoft\Microsoft SQL Server\*\Tools\Shell\Addins',
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList", # https://attack.mitre.org/techniques/T1564/002/, # Manual_CS.txt (#ContiLeaks) /v attacker /t REG_DWORD /d 0
+    r"Microsoft\NetSh", # https://attack.mitre.org/techniques/T1546/007/, # Manual_CS.txt (#ContiLeaks)
 ]
 
 
