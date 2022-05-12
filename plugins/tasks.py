@@ -18,11 +18,13 @@ from datetime import datetime
 logger = logging.getLogger('regmagnet')
 
 QUERY_KEY_LIST = [
-    r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\*"
+    r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\*",
+    r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\*",
+
 ]
 
 QUERY_VALUE_LIST = [
-    # r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\*\DynamicInfo"
+    # r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\*\SD"
 ]
 
 class tasks(plugin):
@@ -99,6 +101,33 @@ class tasks(plugin):
 
                 return input_data
 
+        class actions:
+
+            decription = 'actions -> Parses Tasks Actions structure'
+
+            def actions(input_data, return_values=False):
+
+                if isinstance(input_data, bytes):
+                    buffer_stream = BytesIO(input_data)
+                    buffer_stream.seek(0)
+
+                    action_signature = buffer_stream.read(2)
+                    run_as_account = buffer_stream.read(int.from_bytes(buffer_stream.read(4), 'little')).decode(encoding='utf16', errors='ignore')
+                    not_sure_2 = buffer_stream.read(6)  # Unknown at time
+                    program_path = buffer_stream.read(int.from_bytes(buffer_stream.read(4), 'little')).decode(encoding='utf16', errors='ignore')
+                    program_parameters = buffer_stream.read(int.from_bytes(buffer_stream.read(4), 'little')).decode(encoding='utf16', errors='ignore')
+                    working_dir = buffer_stream.read(2)
+                    if b'\x00\x00' in working_dir or b'' in working_dir:
+                        working_dir = None
+                    else:
+                        working_dir = buffer_stream.read(int.from_bytes(working_dir, 'little')).decode(encoding='utf16', errors='ignore')
+
+                    if not working_dir is None:
+                        return '[RunAs: %s, Working_Dir: %s] %s %s' % (run_as_account, working_dir, program_path, program_parameters)
+                    else:
+                        return '[RunAs: %s] %s %s' % (run_as_account, program_path, program_parameters)
+
+
     def run(self, hive, registry_handler=None, args=None) -> list:
         """ Execute plugin specific actions on the hive file provided
                     - The return value should be the list of registry_provider.registry_item objects """
@@ -135,34 +164,68 @@ class tasks(plugin):
 
         # _items = self.parser.query_value_wd(value_path=QUERY_VALUE_LIST, hive=hive, plugin_name=self.name, reg_handler=registry_handler)
 
+        def create_registry_values(reg_base_value, new_reg_value_names:list, new_values_content_mapping:dict):
+
+            new_reg_values = []
+
+            # Create new registry entires based on reg_base_value
+            for value_name in new_reg_value_names:
+                if value_name in new_values_content_mapping.keys():
+                    new_reg_values.append(registry_provider.registry_value(
+                        _value_path=reg_base_value.value_path.replace(reg_base_value.value_name, value_name),
+                        _value_name=value_name,
+                        _value_name_unicode=bytes(value_name, "utf-16le"),
+                        _value_type=1,
+                        _value_type_str="REG_SZ",
+                        _value_content=new_values_content_mapping[value_name],
+                        _value_content_str=new_values_content_mapping[value_name],
+                        _value_content_unicode=bytes(new_values_content_mapping[value_name], "utf-16le"),
+                        _value_size=len(new_values_content_mapping[value_name]),
+                        _value_raw_data=new_values_content_mapping[value_name].encode()
+                    ))
+
+            return new_reg_values
+
         for reg_item in _items:
             if reg_item.has_values:
                 for reg_value in reg_item.values:
+                    new_reg_values = []
+                    new_values_content_mapping = {}
+
+                    if reg_value.value_name == 'Actions':
+                        Command = tasks.custom_registry_handlers.actions.actions(reg_value.value_raw_data, True)
+
+                        new_values_content_mapping.update({
+                            'Actions_': Command,
+                        })
+
+                        reg_item.values.extend(
+                            create_registry_values(
+                                reg_base_value=reg_value,
+                                new_reg_value_names=['Actions_'],
+                                new_values_content_mapping=new_values_content_mapping,
+                            )
+                        )
+
                     if reg_value.value_name == 'DynamicInfo':
                         DICreationTime, DILastStartTime, DILastStopTime = tasks.custom_registry_handlers.dynamic_info.parse(reg_value.value_raw_data, True)
 
-                        new_values_content_mapping = {
+                        new_values_content_mapping.update({
                             'CreationTime': DICreationTime,
                             'LastStartTime': DILastStartTime,
                             'LastStopTime': DILastStopTime
-                        }
-                        new_reg_values = []
+                        })
 
-                        for value_name in ['CreationTime', 'LastStartTime', 'LastStopTime']:
-                            new_reg_values.append(registry_provider.registry_value(
-                                _value_path=reg_value.value_path.replace('DynamicInfo', value_name),
-                                _value_name=value_name,
-                                _value_name_unicode=bytes(value_name, "utf-16le"),
-                                _value_type=1,
-                                _value_type_str="REG_SZ",
-                                _value_content=new_values_content_mapping[value_name],
-                                _value_content_str=new_values_content_mapping[value_name],
-                                _value_content_unicode=bytes(new_values_content_mapping[value_name], "utf-16le"),
-                                _value_size=len(new_values_content_mapping[value_name]),
-                                _value_raw_data=new_values_content_mapping[value_name].encode()
-                            ))
+                        reg_item.values.extend(
+                            create_registry_values(
+                                reg_base_value=reg_value,
+                                new_reg_value_names=['CreationTime', 'LastStartTime', 'LastStopTime'],
+                                new_values_content_mapping=new_values_content_mapping,
+                            )
+                        )
 
-                        reg_item.values.extend(new_reg_values)
+                    # Add all newly created items back to general list
+                    reg_item.values.extend(new_reg_values)
 
         if _items:
             items.extend(_items)

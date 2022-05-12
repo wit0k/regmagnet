@@ -359,12 +359,23 @@ class handlers(object):
 
         def rslice(data, start):
 
-            if isinstance(data, str):
+            if isinstance(data, str) or isinstance(data, bytes):
                 start = int(start)
                 if start <= len(data):
                     return data[start:]
                 else:
                     return data
+
+            return data
+
+    class encoding_decode:
+
+        encoding_decode = 'Decode bytes...'
+
+        def encoding_decode(data, decoding='utf8'):
+
+            if isinstance(data, bytes):
+                return data.decode(encoding=decoding)
 
             return data
 
@@ -374,7 +385,7 @@ class handlers(object):
 
         def slice(data, stop):
 
-            if isinstance(data, str):
+            if isinstance(data, str) or isinstance(data, bytes):
                 stop = int(stop)
                 if stop <= len(data):
                     return data[0:stop]
@@ -391,6 +402,23 @@ class handlers(object):
 
             if isinstance(data, str):
                 data = re.sub(str_to_replace_regex_pattern, replacement_str, data, re.IGNORECASE)
+
+            return data
+
+    class byte_replace:
+
+        decription = 'byte_replace(byte_to_replace, replacement_byte) -> String replace'
+
+        def byte_replace(data, byte_to_replace, replacement_byte=b''):
+
+            if isinstance(byte_to_replace, str):
+                byte_to_replace = bytes.fromhex(byte_to_replace)
+
+            if isinstance(replacement_byte, str):
+                replacement_byte = bytes.fromhex(replacement_byte)
+
+            if isinstance(data, bytes):
+                data = data.replace(byte_to_replace, replacement_byte)
 
             return data
 
