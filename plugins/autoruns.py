@@ -206,6 +206,9 @@ QUERY_KEY_LIST = [
     r'Microsoft\Microsoft SQL Server\*\Tools\Shell\Addins',
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList", # https://attack.mitre.org/techniques/T1564/002/, # Manual_CS.txt (#ContiLeaks) /v attacker /t REG_DWORD /d 0
     r"Microsoft\NetSh", # https://attack.mitre.org/techniques/T1546/007/, # Manual_CS.txt (#ContiLeaks)
+    r"ControlSet001\Control\Terminal Server\Utilities\query", # https://twitter.com/0gtweet/status/1607690354068754433?t=FUq3UZnWsEPl_L0La-pa8g&s=03
+    r"ControlSet002\Control\Terminal Server\Utilities\query",
+    r"ControlSet003\Control\Terminal Server\Utilities\query",
 ]
 
 
