@@ -209,6 +209,7 @@ QUERY_KEY_LIST = [
     r"ControlSet001\Control\Terminal Server\Utilities\query", # https://twitter.com/0gtweet/status/1607690354068754433?t=FUq3UZnWsEPl_L0La-pa8g&s=03
     r"ControlSet002\Control\Terminal Server\Utilities\query",
     r"ControlSet003\Control\Terminal Server\Utilities\query",
+    r"CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open\command" # UsrClass.dat is needed. https://www.hexacorn.com/blog/2018/05/28/beyond-good-ol-run-key-part-78-2/
 ]
 
 
