@@ -119,6 +119,7 @@ QUERY_VALUE_LIST = [
     r"Microsoft\Office test\Special\Perf", # https://attack.mitre.org/techniques/T1137/002/, # Manual_CS.txt (#ContiLeaks)
     r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows\AppInit_DLLs", # https://attack.mitre.org/techniques/T1546/010/, # Manual_CS.txt (#ContiLeaks)
     r"Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*\MonitorProcess", # https://attack.mitre.org/techniques/T1546/012/, # Manual_CS.txt (#ContiLeaks) .. This must be enabled to make it work reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*" /v ReportingMode /t REG_DWORD /d 1
+    r"Software\Classes\CLSID\*\InprocServer32", # UsrClass or NTUSER -> https://blog.yaxser.io/posts/task-scheduler-com-handler 
 ]
 
 QUERY_KEY_LIST = [

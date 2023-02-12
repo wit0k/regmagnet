@@ -11,7 +11,7 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["-s=/home/wit0k/artifacts/TestUser/UsrClass.dat", "-p=parser -ki CLSID\\645FF040-5081-101B-9F08-00AA002F954E"],
+            "args": ["-s=/home/wit0k/artifacts/SOFTWARE", "-p=autouns"],
         }
     ]
 }
