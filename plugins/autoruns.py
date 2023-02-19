@@ -120,6 +120,8 @@ QUERY_VALUE_LIST = [
     r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows\AppInit_DLLs", # https://attack.mitre.org/techniques/T1546/010/, # Manual_CS.txt (#ContiLeaks)
     r"Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*\MonitorProcess", # https://attack.mitre.org/techniques/T1546/012/, # Manual_CS.txt (#ContiLeaks) .. This must be enabled to make it work reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*" /v ReportingMode /t REG_DWORD /d 1
     r"Software\Classes\CLSID\*\InprocServer32", # UsrClass or NTUSER -> https://blog.yaxser.io/posts/task-scheduler-com-handler 
+    r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\IniFileMapping\system.ini\boot",
+    r"Microsoft\Windows NT\CurrentVersion\IniFileMapping\system.ini\boot",
 ]
 
 QUERY_KEY_LIST = [
@@ -210,7 +212,10 @@ QUERY_KEY_LIST = [
     r"ControlSet001\Control\Terminal Server\Utilities\query", # https://twitter.com/0gtweet/status/1607690354068754433?t=FUq3UZnWsEPl_L0La-pa8g&s=03
     r"ControlSet002\Control\Terminal Server\Utilities\query",
     r"ControlSet003\Control\Terminal Server\Utilities\query",
-    r"CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open\command" # UsrClass.dat is needed. https://www.hexacorn.com/blog/2018/05/28/beyond-good-ol-run-key-part-78-2/
+    r"CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open\command", # UsrClass.dat is needed. https://www.hexacorn.com/blog/2018/05/28/beyond-good-ol-run-key-part-78-2/
+    r"ControlSet001\Control\Session Manager\BootExecute", # https://www2.isye.gatech.edu/~mgoetsch/cali/Windows%20Configuration/Windows%20Configuration%20Html/ModifyingDefaultBootupRunofCHKDSK_F.htm
+    r"ControlSet002\Control\Session Manager\BootExecute",
+    r"ControlSet003\Control\Session Manager\BootExecute",
 ]
 
 
