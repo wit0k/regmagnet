@@ -1,5 +1,5 @@
 import time
-import md.mem_profile as mem
+#import md.mem_profile as mem
 
 import logging
 import argparse
@@ -196,7 +196,7 @@ class search(plugin):
 
             if self.parser.verbose_mode:
 
-                print(' [*] Memory (Before): {} Mb'.format(mem.memory_usage_psutil()))
+                #print(' [*] Memory (Before): {} Mb'.format(mem.memory_usage_psutil()))
                 t1 = time.clock()
 
             print(' [*] Executing Recursive Search...')
@@ -208,7 +208,7 @@ class search(plugin):
         # Return items according to baseline settings
         if self.parser.verbose_mode:
             t2 = time.clock()
-            print(' [*] Memory (After): {} Mb'.format(mem.memory_usage_psutil()))
+            #print(' [*] Memory (After): {} Mb'.format(mem.memory_usage_psutil()))
             print(' [*] The Search took {} Seconds'.format(t2 - t1))
 
         return self.return_items(items)
