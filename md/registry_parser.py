@@ -15,6 +15,7 @@ from os.path import isfile, isdir, splitext, dirname
 from md.hasher import get_hash
 from md.archive import archive
 from md.plugin import plugin
+from sys import exit
 
 logger = logging.getLogger('regmagnet')
 
