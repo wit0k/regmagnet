@@ -1170,7 +1170,7 @@ class registry_parser(object):
                     try:
                         # encoding="utf-16le"
                         with open(output_path, encoding="utf-16le", mode=write_mode, newline='') as file:
-                            csvwriter = csv.writer(file, delimiter=delimiter)
+                            csvwriter = csv.writer(file, delimiter=delimiter, escapechar='\\')
 
                             if write_csv_header:
                                 csvwriter.writerow(current_fields)
