@@ -110,9 +110,7 @@ class plugin_manager(object):
 
         # Get the list of installed plugins
         installed_plugins = {
-            name: import_module(name)
-            for finder, name, ispkg
-            in self._iter_namespace(plugins)
+            name: import_module(name) for finder, name, ispkg in self._iter_namespace(plugins)
         }
 
         return installed_plugins
@@ -124,11 +122,14 @@ class plugin_manager(object):
         # the name.
         return iter_modules(ns_pkg.__path__, ns_pkg.__name__ + ".")
 
-    def run(self, plugin, registry_hive, registry_handler=None, args=None):
+    def run(self, plugin, registry_hive, registry_handler=None, args=None, loaded_hives=None):
 
         logger.debug('Execute: %s -> Details: %s' % (plugin[0], plugin[1]))
         plugin_object = plugin[1].get('plugin_object', None)
         if plugin_object:
+            if loaded_hives:
+                plugin_object.loaded_hives = loaded_hives
+                
             return plugin_object.run(hive=registry_hive, registry_handler=registry_handler, args=args)
         else:
             logger.error('The plugin: %s does not have the plugin_object initialized!' % plugin[0])

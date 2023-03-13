@@ -32,6 +32,7 @@ class plugin(object):
     """ Plugin specific variables """
     supported_hive_types = []  # Hive type must be upper case
     supported_providers = []  # Plugin may support more than one registry provider, or a specific one, empty would use default one
+    loaded_hives = []
 
     def __init__(self, params=None, parser=None):
 

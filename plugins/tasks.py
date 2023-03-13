@@ -27,6 +27,14 @@ QUERY_VALUE_LIST = [
     # r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree\*\SD"
 ]
 
+class windows_task:
+
+    ACTION_TYPE_EXECUTE_PROGRAM = b'\x66\x66'
+    ACTION_TYPE_COM_HANDLER = b'\x77\x77'
+    ACTION_TYPE_SEND_EMAIL = b'\x88\x88'
+    ACTION_TYPE_MSG_BOX = b'\x99\x99'
+    ACTION_TYPE_UNSUPPORTED = None
+    
 class tasks(plugin):
     """ tasks - RegMagnet plugin  """
 
@@ -42,7 +50,8 @@ class tasks(plugin):
     config_data = {}  # Contains the json data loaded from config_file (If any was specified and properly created)
 
     """ Plugin specific variables """
-    supported_hive_types = ["SOFTWARE"]  # Hive type must be upper case
+    supported_hive_types = ["SOFTWARE", "USRCLASS"]  # Hive type must be upper case
+    # loaded_hives -> Is filled by PluginManager and contains list of all loaded plugins
 
     def __init__(self, params=None, parser=None):
 
@@ -105,8 +114,8 @@ class tasks(plugin):
 
             decription = 'actions -> Parses Tasks Actions structure'
 
-            def actions(input_data, return_values=False):
-
+            def actions(input_data, return_values=False, task_path=''):
+                
                 if isinstance(input_data, bytes):
                     buffer_stream = BytesIO(input_data)
                     buffer_stream.seek(0)
@@ -114,18 +123,43 @@ class tasks(plugin):
                     action_signature = buffer_stream.read(2)
                     run_as_account = buffer_stream.read(int.from_bytes(buffer_stream.read(4), 'little')).decode(encoding='utf16', errors='ignore')
                     not_sure_2 = buffer_stream.read(6)  # Unknown at time
-                    program_path = buffer_stream.read(int.from_bytes(buffer_stream.read(4), 'little')).decode(encoding='utf16', errors='ignore')
-                    program_parameters = buffer_stream.read(int.from_bytes(buffer_stream.read(4), 'little')).decode(encoding='utf16', errors='ignore')
-                    working_dir = buffer_stream.read(2)
-                    if b'\x00\x00' in working_dir or b'' in working_dir:
-                        working_dir = None
-                    else:
-                        working_dir = buffer_stream.read(int.from_bytes(working_dir, 'little')).decode(encoding='utf16', errors='ignore')
 
-                    if not working_dir is None:
-                        return '[RunAs: %s, Working_Dir: %s] %s %s' % (run_as_account, working_dir, program_path, program_parameters)
+                    action_type = not_sure_2[0:2]
+
+                    if windows_task.ACTION_TYPE_COM_HANDLER in action_type:
+                        # task_buffer = buffer_stream.read()
+                        # print(task_buffer.hex())
+                        # Read BSTR ID
+
+                        if '\Microsoft\Windows\Chkdsk\ProactiveScan' in task_path:
+                            debug = ""
+
+                        action_bytes = buffer_stream.read()
+                        bstr_terminator = action_bytes.find(b'\x00\x00\x00\x00')
+                        action_clsid = action_bytes[0:bstr_terminator]
+                        action_clsid_str = '{%s-%s-%s-%s-%s}' % (action_clsid[0:4][::-1].hex(),action_clsid[4:6][::-1].hex(),
+                                                                 action_clsid[6:8][::-1].hex(),action_clsid[8:10].hex(),
+                                                                 action_clsid[10:16].hex())
+                        
+                        
+                        return {'ACTION_TYPE': windows_task.ACTION_TYPE_COM_HANDLER,'CLSID': action_clsid_str, 'CMD': ''}
+
+                    elif windows_task.ACTION_TYPE_EXECUTE_PROGRAM in action_type:
+
+                        program_path = buffer_stream.read(int.from_bytes(buffer_stream.read(4), 'little')).decode(encoding='utf16', errors='ignore')
+                        program_parameters = buffer_stream.read(int.from_bytes(buffer_stream.read(4), 'little')).decode(encoding='utf16', errors='ignore')
+                        working_dir = buffer_stream.read(2)
+                        if b'\x00\x00' in working_dir or b'' in working_dir:
+                            working_dir = None
+                        else:
+                            working_dir = buffer_stream.read(int.from_bytes(working_dir, 'little')).decode(encoding='utf16', errors='ignore')
+
+                        if not working_dir is None:
+                            return {'ACTION_TYPE': windows_task.ACTION_TYPE_EXECUTE_PROGRAM,'CMD': '[RunAs: %s, Working_Dir: %s] %s %s' % (run_as_account, working_dir, program_path, program_parameters)}
+                        else:
+                            return {'ACTION_TYPE': windows_task.ACTION_TYPE_EXECUTE_PROGRAM,'CMD': '[RunAs: %s] %s %s' % (run_as_account, program_path, program_parameters)}
                     else:
-                        return '[RunAs: %s] %s %s' % (run_as_account, program_path, program_parameters)
+                        return {'ACTION_TYPE': windows_task.ACTION_TYPE_UNSUPPORTED,'CMD': ''}
 
 
     def run(self, hive, registry_handler=None, args=None) -> list:
@@ -187,17 +221,62 @@ class tasks(plugin):
             return new_reg_values
 
         for reg_item in _items:
+            task_path = ""
             if reg_item.has_values:
                 for reg_value in reg_item.values:
                     new_reg_values = []
                     new_values_content_mapping = {}
+                    
+                    if reg_value.value_name == 'Path':
+                        task_path = reg_value.value_content_str
 
                     if reg_value.value_name == 'Actions':
-                        Command = tasks.custom_registry_handlers.actions.actions(reg_value.value_raw_data, True)
+                        Command = tasks.custom_registry_handlers.actions.actions(reg_value.value_raw_data, True, task_path)
+
+                        if isinstance(Command, dict):
+                            # This is quick and dirty workaround, i need to improve it later
+                            if Command.get('ACTION_TYPE', None) == windows_task.ACTION_TYPE_COM_HANDLER:
+                                clsid_str = Command.get('CLSID', None)
+                                if clsid_str:
+                                    # Query values:
+                                    # SOFTWARE -> 'Classes\CLSID\%s\(Default)' 
+                                    # USRCLASS -> 'CLSID\%s\(Default)' 
+                                    class_handlers = []
+                                    for _hive in self.loaded_hives:
+                                        class_handlers.extend(self.parser.query_value(value_path=[
+                                            'Classes\CLSID\%s\InProcServer32\(default)' % clsid_str, 'CLSID\%s\InProcServer32\(default)' % clsid_str], 
+                                            hive=_hive.get('hive'), plugin_name=self.name, reg_handler=None))
+                                    
+                                    if len(class_handlers) == 0:
+                                        Command = '<COM_HANDLER_NOT_FOUND>'
+                                    else:
+                                        vals = []
+                                        for item in class_handlers:
+                                            ritems = item.items()
+                                            vals = []
+                                            if len(ritems) > 0:
+                                                for ritem in ritems:
+                                                    if ritem.get('value_content', None):
+                                                        vals.append(ritem.get('value_content', None))
+                                        
+                                        if len(vals) > 0:
+                                            Command = '\n'.join(vals)
+                                            Command = '"%s -> %s"' % (clsid_str, Command)
+                                        else:
+                                            Command = '<COM_HANDLER_VALUES_NOT_FOUND>'
+                                            Command = '"%s -> %s"' % (clsid_str, Command)
+                                            
+                                else:
+                                    Command = '<UNABLE_TO_GET_CLSID>'
+                                    Command = '"None -> %s"' % (clsid_str, Command)
+                                
+                                print(Command)
+                            else:
+                                Command = Command.get('CMD', '')
 
                         new_values_content_mapping.update({
                             'Actions_': Command,
-                        })
+                        }) #custom_registry_handlers
 
                         reg_item.values.extend(
                             create_registry_values(
