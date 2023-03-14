@@ -253,7 +253,6 @@ class tasks(plugin):
                                         vals = []
                                         for item in class_handlers:
                                             ritems = item.items()
-                                            vals = []
                                             if len(ritems) > 0:
                                                 for ritem in ritems:
                                                     if ritem.get('value_content', None):
@@ -270,7 +269,6 @@ class tasks(plugin):
                                     Command = '<UNABLE_TO_GET_CLSID>'
                                     Command = '"None -> %s"' % (clsid_str, Command)
                                 
-                                print(Command)
                             else:
                                 Command = Command.get('CMD', '')
 
