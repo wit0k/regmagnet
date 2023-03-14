@@ -139,7 +139,7 @@ class tasks(plugin):
                         test = action_bytes.hex()
 
                         bstr_terminator = action_bytes.find(b'\x00\x00\x00\x00')
-                        action_clsid = action_bytes[0:] #bstr_terminator]
+                        action_clsid = action_bytes[0:bstr_terminator]
                         action_clsid_str = '{%s-%s-%s-%s-%s}' % (action_clsid[0:4][::-1].hex(),action_clsid[4:6][::-1].hex(),
                                                                  action_clsid[6:8][::-1].hex(),action_clsid[8:10].hex(),
                                                                  action_clsid[10:16].hex())
