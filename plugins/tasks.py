@@ -135,14 +135,17 @@ class tasks(plugin):
                             debug = ""
 
                         action_bytes = buffer_stream.read()
+
+                        test = action_bytes.hex()
+
                         bstr_terminator = action_bytes.find(b'\x00\x00\x00\x00')
-                        action_clsid = action_bytes[0:bstr_terminator]
+                        action_clsid = action_bytes[0:] #bstr_terminator]
                         action_clsid_str = '{%s-%s-%s-%s-%s}' % (action_clsid[0:4][::-1].hex(),action_clsid[4:6][::-1].hex(),
                                                                  action_clsid[6:8][::-1].hex(),action_clsid[8:10].hex(),
                                                                  action_clsid[10:16].hex())
                         
                         
-                        return {'ACTION_TYPE': windows_task.ACTION_TYPE_COM_HANDLER,'CLSID': action_clsid_str, 'CMD': ''}
+                        return {'ACTION_TYPE': windows_task.ACTION_TYPE_COM_HANDLER,'CLSID': action_clsid_str, 'CMD': '[RunAs: %s]' % run_as_account}
 
                     elif windows_task.ACTION_TYPE_EXECUTE_PROGRAM in action_type:
 
@@ -252,18 +255,21 @@ class tasks(plugin):
                                     else:
                                         vals = []
                                         for item in class_handlers:
+                                            # This can be improved to direct use of registry_item
                                             ritems = item.items()
                                             if len(ritems) > 0:
                                                 for ritem in ritems:
                                                     if ritem.get('value_content', None):
                                                         vals.append(ritem.get('value_content', None))
                                         
+                                        run_as_account = Command.get('CMD', '')
+
                                         if len(vals) > 0:
                                             Command = '\n'.join(vals)
-                                            Command = '"%s -> %s"' % (clsid_str, Command)
+                                            Command = '"%s -> %s -> %s"' % (clsid_str, run_as_account, Command)
                                         else:
                                             Command = '<COM_HANDLER_VALUES_NOT_FOUND>'
-                                            Command = '"%s -> %s"' % (clsid_str, Command)
+                                            Command = '"%s -> %s -> %s"' % (clsid_str, run_as_account, Command)
                                             
                                 else:
                                     Command = '<UNABLE_TO_GET_CLSID>'
