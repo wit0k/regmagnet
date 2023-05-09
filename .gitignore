@@ -2,12 +2,6 @@
 *.geany
 *.nja
 *.vd
-*.csv
-*.reg
-<<<<<<< HEAD
-*.csv
-=======
->>>>>>> 7d2d1ad (Update .gitignore)
 __pycache__
 .idea
 .DS_Store
