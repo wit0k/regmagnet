@@ -3,6 +3,7 @@
 *.nja
 *.vd
 *.csv
+*.reg
 __pycache__
 .idea
 .DS_Store
