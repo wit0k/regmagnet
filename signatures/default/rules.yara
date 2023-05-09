@@ -2,7 +2,7 @@ rule COM_Hijack_multi_payloads {
     meta:
         author = "wit0k"
         date = "2023-05-04"
-        description = "COM-Hijack - Windows Scheduled Task with COM-enabled handler having multiple payloads"
+        description = "COM-Hijack - Windows Scheduled Task with COM-enabled handler having multiple payloads."
         reference = "https://attack.mitre.org/techniques/T1546/015/"
         mitre_tid = "['T1546.015']"
 
