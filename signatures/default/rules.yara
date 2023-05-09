@@ -26,7 +26,7 @@ rule Hidden_Task_security_descriptor_abuse {
     meta:
         author = "wit0k"
         date = "2023-05-04"
-        description = "Suspicious Task - Missing or Empty Security Descriptor (SD)."
+        description = "Suspicious Task - Missing or Empty Security Descriptor (SD).."
         reference = "https://github.com/wit0k/tarrask"
         mitre_tid = "['None']"
 
