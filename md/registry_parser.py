@@ -16,6 +16,9 @@ from md.hasher import get_hash
 from md.archive import archive
 from md.plugin import plugin
 from sys import exit
+from sys import stdout
+
+stdout.reconfigure(encoding='utf-8')
 
 logger = logging.getLogger('regmagnet')
 

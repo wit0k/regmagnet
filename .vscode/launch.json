@@ -8,10 +8,10 @@
             "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "/home/wit0k/repos/regmagnet/rm.py", //"${file}",
             "console": "integratedTerminal",
             "justMyCode": true,
-            "args": ["-r", "-s=/home/wit0k/artifacts", "-p=tasks"],
+            "args": ["-r", "-s=/home/wit0k/artifacts/wit0k", "-p=tasks"],
         }
     ]
 }

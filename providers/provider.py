@@ -28,6 +28,7 @@ from sqlalchemy.exc import OperationalError, IntegrityError, ArgumentError
 
 logger = logging.getLogger('regmagnet')
 
+
 class registry_provider(object):
 
     name = None
@@ -227,6 +228,53 @@ class registry_provider(object):
                         all.append(str(_val.__hash__()))
 
                     self.values_hash = hash("".join(all))
+
+        def update(self):
+            
+            if self.values:
+                all = []
+                for _val in self.values:
+                    all.append(str(_val.__hash__()))
+
+                self.values_hash = hash("".join(all))
+
+        def add_values(self, new_values, name_prefix=None):
+            
+            new_reg_values = []
+
+            if isinstance(new_values, dict):
+                counter = 0
+                for value_name, value_content in new_values.items():
+                        counter += 1
+                        org_value_name = value_name
+                        old_value_path = self.values[0].value_path
+                        old_value_name = self.values[0].value_name
+                        
+                        if name_prefix:
+                            value_name = '%s.%s' % (name_prefix, value_name)
+                        
+                        new_reg_values.append(registry_provider.registry_value(
+                            _value_path=old_value_path.replace(old_value_name, value_name),
+                            _value_name=value_name,
+                            _value_name_unicode=bytes(value_name, "utf-16le"),
+                            _value_type=1,
+                            _value_type_str="REG_SZ",
+                            _value_content=str(new_values[org_value_name]),
+                            _value_content_str=str(new_values[org_value_name]),
+                            _value_content_unicode=bytes(str(new_values[org_value_name]), "utf-16le") if new_values[org_value_name] is not None else 'None',
+                            _value_size=len(str(new_values[org_value_name])),
+                            _value_raw_data=str(new_values[org_value_name]).encode()
+                        ))
+            elif isinstance(new_values[0], registry_provider.registry_value):
+                
+                for value_item in new_values:
+                    new_reg_values.append(value_item)
+
+            self.values.extend(new_reg_values)
+            self.update()
+
+            return new_reg_values
+        
         def add(self, _plugin_name, _registry_hive, _registry_key, _registry_values=None, **custom_fields):
 
             if _registry_values is None: _registry_values = []
@@ -389,6 +437,16 @@ class registry_provider(object):
 
             return format_fields
 
+        def get_value(self, value_name: str, reg_item=None, default=None):
+
+            if reg_item is None: reg_item = self
+            
+            for reg_value in reg_item.values:
+                if reg_value.value_name.lower() == value_name.lower():
+                    return reg_value.value_content
+            
+            return default
+    
     class registry_reg_handler(object):
 
         def __init__(self, recipes, decode_param_from=None, custom_handlers=None):

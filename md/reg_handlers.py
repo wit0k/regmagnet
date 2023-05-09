@@ -21,6 +21,7 @@ from urllib.parse import unquote_plus
 
 import sys, hexdump, binascii
 from Crypto.Cipher import AES
+from io import BytesIO
 
 logger = logging.getLogger('regmagnet')
 
@@ -47,6 +48,60 @@ class handlers(object):
 
         return reg_handlers
 
+    class dynamic_info:
+            
+            # https://github.com/gtworek/PSBits/blob/master/DFIR/GetDynamicTaskInfo.ps1
+            decription = 'dynamic_info -> Parses Tasks DynamicInfo structure'
+
+            def parse(input_data, return_values=False):
+                return tasks.custom_registry_handlers.dynamic_info.dynamic_info(input_data, return_values)
+
+            def dynamic_info(input_data, return_values=False):
+
+                # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
+                EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+                HUNDREDS_OF_NANOSECONDS = 10000000
+
+                def getFileTime(FILETIME_BUFFER): #wit0k, previous function
+                    
+                    # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
+                    EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+                    HUNDREDS_OF_NANOSECONDS = 10000000
+                    
+                    _filetime = int.from_bytes(FILETIME_BUFFER, byteorder='little', signed=True)
+
+                    try:
+
+                        _datetime = datetime.utcfromtimestamp((_filetime - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+                        _datetime_str = _datetime.strftime('%Y-%m-%d %H:%M:%S.%f')
+                        return _datetime_str
+                    except Exception as msg:
+                        return '%s - Error: %s' % (_filetime, str(msg))
+
+                if input_data:
+                    if isinstance(input_data, bytes):
+
+                        bin_data = BytesIO(input_data)
+
+                        try:
+                            DIVersion = bin_data.read(4)[0]  # actually 4 bytes, but the rest is 0.
+                            DICreationTime = getFileTime(bin_data.read(8))
+                            DILastStartTime = getFileTime(bin_data.read(8))
+                            DILastStopTime = getFileTime(bin_data.read(8))
+
+                            if return_values is True:
+                                return DICreationTime, DILastStartTime, DILastStopTime
+                            else:
+                                return 'Created: %s; Started: %s; Stopped: %s' % (DICreationTime, DILastStartTime, DILastStopTime)
+
+                        except Exception as msg:
+
+                            if return_values is True:
+                                return None, None, None
+
+                            return str(msg)
+
+                return input_data
 
     class decrypt_teamviewer:
 
