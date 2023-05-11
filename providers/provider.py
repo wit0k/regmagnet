@@ -253,6 +253,7 @@ class registry_provider(object):
                         if name_prefix:
                             value_name = '%s.%s' % (name_prefix, value_name)
                         
+                        # Later i will need to add value per input data type accordingly
                         new_reg_values.append(registry_provider.registry_value(
                             _value_path=old_value_path.replace(old_value_name, value_name),
                             _value_name=value_name,
