@@ -1,5 +1,7 @@
 import logging
 import struct
+import argparse
+
 from pathlib import Path 
 
 from datetime import datetime, timedelta
@@ -542,9 +544,44 @@ class tasks(plugin):
     # loaded_hives -> Is filled by PluginManager and contains list of all loaded plugins
 
     def __init__(self, params=None, parser=None):
-
+        """ Init function allowing plugin specific parameters """
+        
         self.parser = parser
         self.add_format_fields(field_names=['tags'])
+    
+        argsparser = argparse.ArgumentParser(usage=argparse.SUPPRESS,
+                                             description='Plugin: "%s" - %s' % (self.name, self.description))
+
+        """ Argument groups """
+        plugin_args = argsparser.add_argument_group('Plugin arguments', "\n")
+
+        """ Script arguments """
+
+        plugin_args.add_argument("-b", "--baseline", action='store_true', dest='baseline_enabled',
+                                 required=False, default=False,
+                                 help="Print or export items which are not part of baseline")
+        
+        plugin_args.add_argument("-s", "--sig-scan", action='store_true', dest='signature_scan_enabled',
+                                 required=False, default=False,
+                                 help="Scans parsed Scheduled Tasks against Yara rulesets (it fills Tags field on match)")
+
+        plugin_args.add_argument("-rh", "--registry-handler", type=str, action='store', dest='registry_handlers',
+                                 required=False,
+                                 help="...")
+
+        plugin_args.add_argument("-rhdp", "--registry-handler-decode-param", type=str, action='store',
+                                 dest='rh_decode_param',
+                                 required=False, default=None,
+                                 help="...")
+
+        self.parsed_args = argsparser.parse_args(args=params)
+        argc = params.__len__()
+
+        #  Convert required parameters to list
+        self.format_parsed_args()
+
+        #  Load Baseline file according to parameters specified
+        self.load_baseline()
     
     def run(self, hive, registry_handler=None, args=None) -> list:
         """ Execute plugin specific actions on the hive file provided
@@ -670,7 +707,8 @@ class tasks(plugin):
                 reg_item.add_values(task_obj.blob.get('variables', {}))
                 
                 # Trigger a Yara scan on Task's blob
-                task_obj.scan()
+                if self.parsed_args.signature_scan_enabled:
+                    task_obj.scan()
 
                 # Update Registry_item's tags
                 setattr(reg_item, 'tags', '%s' % '\n'.join(task_obj.detections) if task_obj.detections else 'None')
@@ -687,4 +725,5 @@ class tasks(plugin):
             if 'tags' not in args.fields_to_print:
                 args.fields_to_print.append('tags')
 
-        return _items
+        # Return items not in baseline, if baseline is enabled
+        return self.return_items(_items)
