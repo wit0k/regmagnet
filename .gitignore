@@ -2,6 +2,10 @@
 *.geany
 *.nja
 *.vd
+*.csv
+*.xls
+*.xlsx
+*.reg
 __pycache__
 .idea
 .DS_Store

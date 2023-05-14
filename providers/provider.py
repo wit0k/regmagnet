@@ -440,7 +440,7 @@ class registry_provider(object):
 
         def get_value(self, value_name: str, reg_item=None, default=None):
 
-            if reg_item is None: reg_item = self
+            if reg_item is None : reg_item = self
             
             for reg_value in reg_item.values:
                 if reg_value.value_name.lower() == value_name.lower():

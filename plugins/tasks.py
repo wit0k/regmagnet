@@ -272,6 +272,7 @@ class windows_task_actions(object):
                 # Add parsed action
                 _Action_obj.blob = _Action_obj.yara_blob()
                 _Action_obj.size = len(_Action_obj.blob.get('buffer', b''))
+                _Action_obj.blob['variables']['action_size'] = _Action_obj.size
 
                 self.actions.append(_Action_obj)
             
@@ -564,6 +565,11 @@ class tasks(plugin):
         plugin_args.add_argument("-s", "--sig-scan", action='store_true', dest='signature_scan_enabled',
                                  required=False, default=False,
                                  help="Scans parsed Scheduled Tasks against Yara rulesets (it fills Tags field on match)")
+        
+        plugin_args.add_argument("-r", "--raw", action='store_true', dest='raw_entries',
+                                 required=False, default=False,
+                                 help="...")
+
 
         plugin_args.add_argument("-rh", "--registry-handler", type=str, action='store', dest='registry_handlers',
                                  required=False,
@@ -622,9 +628,37 @@ class tasks(plugin):
             reg_handler=registry_handler
         )
 
+        # -----------------------------------------------------------------------------------------------------------.
         # Iterate over all tasks     
         for reg_item in tasks:
             
+            # Query task tree/meta-data
+            if reg_item.get_value('Path'):
+                tree = self.parser.query_key_wd(
+                        key_path=[r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree%s\*" % reg_item.get_value('Path')],
+                        hive=hive,
+                        plugin_name=self.name,
+                        reg_handler=registry_handler)
+
+                # Enrich Task's reg_item object with entries from Tree node
+                for linked_reg_item in tree:
+                    if linked_reg_item.has_values:
+                        # for reg_value in linked_reg_item.values:
+                        # Saves values from Tree\%task_path% to Tasks\%task_guid%
+                        reg_item.add_values(linked_reg_item.values)
+        # -----------------------------------------------------------------------------------------------------------.
+        # - At this stage the reg_item contains values related to given task from Tree and Tasks node
+
+        # Return all Tasks in raw format (not parsed)
+        if self.parsed_args.raw_entries:
+            return tasks
+
+        # Iterate over all merged tasks     
+        for reg_item in tasks:
+
+            if 'MALWARE' in reg_item.get_value('Path', default=''):
+                debug = ""
+
             # Create empty task object
             task_obj = windows_task()
 
@@ -634,32 +668,11 @@ class tasks(plugin):
                 for reg_value in reg_item.values:
                     task_obj.add_field(reg_value.value_name, reg_value.value_content)
                 
-                # Query task tree/meta-data
-                if task_obj.Path:
-                    tree = self.parser.query_key_wd(
-                        key_path=[r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree%s" % task_obj.Path],
-                        hive=hive,
-                        plugin_name=self.name,
-                        reg_handler=registry_handler
-                    )
-
-                    # Enrich task object with task metadata from registry
-                    for linked_reg_item in tree:
-                        if linked_reg_item.has_values:
-                            for reg_value in linked_reg_item.values:
-                                task_obj.add_field(reg_value.value_name, reg_value.value_content)
-
-                            # Saves values from Tree\%task_path% to Tasks\%task_guid%
-                            reg_item.add_values(linked_reg_item.values)
-
-                            # self.parser.print([reg_item], 'csv')
-                            # self.parser.print([reg_item], 'json')
-
                 # Process Task fields
                 task_obj.process()
 
                 index = 0
-                # Enrich COM Handler -> Add COM data
+                # Enrich Action data
                 for _action in task_obj.data.actions.actions:
                     
                     index += 1
@@ -673,7 +686,8 @@ class tasks(plugin):
                         #  - SOFTWARE -> 'Classes\CLSID\%s\(Default)' -> Expected COM Handlers
                         #  - USRCLASS -> 'CLSID\%s\(Default)'  -> Unexpected/User Handlers
                         class_handlers = []
-
+                        
+                        # Time consuming task (Performed for each COM handler/action) - Query system and user class id
                         for _hive in self.loaded_hives:
                             class_handlers.extend(self.parser.query_value(value_path=[
                                 'Classes\CLSID\%s\InProcServer32\(default)' % _action.clsid, 'CLSID\%s\InProcServer32\(default)' % _action.clsid], 
@@ -688,11 +702,11 @@ class tasks(plugin):
                             for _val in item.values:
                                 _action.handler_payloads.append('%s, %s' % (_val.value_content, _action.data) if _action.data else '%s' % _val.value_content)
                         
-                        # Refresh/set any updated arguments before generating the blob
-                        _action.handler_payloads_count = len(_action.handler_payloads)
+                    # Refresh/set any updated arguments before generating the blob
+                    _action.handler_payloads_count = len(_action.handler_payloads)
                         
-                        # Generate Action blob for further scanning
-                        _action.blob = _action.yara_blob()
+                    # Generate Action blob for further scanning
+                    _action.blob = _action.yara_blob()
                     
                     # Saves Action variables as new values
                     reg_item.add_values(_action.blob.get('variables', {}), _action_prefix)
@@ -700,14 +714,16 @@ class tasks(plugin):
                     # Saves Action fields as new values
                     reg_item.add_values(_action.json(), _action_prefix)
 
-                # Generate Task's blob for further Yara scanning
-                task_obj.yara_blob()
-
-                # Saves Task variables as new values
-                reg_item.add_values(task_obj.blob.get('variables', {}))
-                
                 # Trigger a Yara scan on Task's blob
                 if self.parsed_args.signature_scan_enabled:
+                    
+                    # Generate Task's blob for further Yara scanning
+                    task_obj.yara_blob()
+
+                    # Saves Task variables as new values
+                    reg_item.add_values(task_obj.blob.get('variables', {}))
+                    
+                    # Scan Task
                     task_obj.scan()
 
                 # Update Registry_item's tags
