@@ -6,6 +6,7 @@ from os.path import abspath, dirname
 
 """ Set working directory so the script can be executed from any location/symlink """
 chdir(dirname(abspath(__file__)))
+sys.path.insert(0, dirname(abspath(__file__)))
 
 from md.errors import *
 from md.registry_parser import registry_parser
