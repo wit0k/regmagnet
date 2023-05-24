@@ -1169,11 +1169,11 @@ class registry_parser(object):
                 for _item in reg_item.items():
                     row = []
                     for _field_name in current_fields:
-                        row.append(str(_item.get(_field_name, '')))
+                        row.append(str(_item.get(_field_name, '')).replace("\\\\", "\\"))
                     try:
                         # encoding="utf-16le"
                         with open(output_path, encoding="utf-16le", mode=write_mode, newline='') as file:
-                            csvwriter = csv.writer(file, delimiter=delimiter, escapechar='\\')
+                            csvwriter = csv.writer(file, delimiter=delimiter, escapechar='\\', quotechar='"', doublequote=True)
 
                             if write_csv_header:
                                 csvwriter.writerow(current_fields)

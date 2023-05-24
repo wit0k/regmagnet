@@ -202,6 +202,21 @@ class windows_task_action_flat(object):
         if self.handler_type == windows_task.handler_type.MSG_BOX:
             return 'Action [Type: %s] -> Payload: %s %s' % (self.handler_type_str, self.caption, self.content)
     
+    def payload(self) -> str:
+
+        if self.handler_type == windows_task.handler_type.COM_HANDLER:
+            # return '%s,%s" -> Payloads: %s' % (self.handler_type_str, self.clsid, self.data, self.handler_payloads)
+            return '\n'.join(['%s' % payload for payload in self.handler_payloads])
+           
+        if self.handler_type == windows_task.handler_type.EXECUTE_PROGRAM:
+            return '%s %s %s' % (self.command, self.arguments, self.working_directory)
+        
+        if self.handler_type == windows_task.handler_type.SEND_EMAIL:
+            return 'ATTACHMENT_COUNT: "%s" TO:"%s" Content:"%s"' % (self.num_attachment_filenames, self.to, self.content)
+        
+        if self.handler_type == windows_task.handler_type.MSG_BOX:
+            return 'CAPTION: "%s" CONTENT: "%s"' % (self.caption, self.content)
+    
 class windows_task_actions(object):
     
     version = None
@@ -656,9 +671,6 @@ class tasks(plugin):
         # Iterate over all merged tasks     
         for reg_item in tasks:
 
-            if 'MALWARE' in reg_item.get_value('Path', default=''):
-                debug = ""
-
             # Create empty task object
             task_obj = windows_task()
 
@@ -700,8 +712,11 @@ class tasks(plugin):
                             reg_item.add_values(item.values)
 
                             for _val in item.values:
-                                _action.handler_payloads.append('%s, %s' % (_val.value_content, _action.data) if _action.data else '%s' % _val.value_content)
-                        
+                                _action.handler_payloads.append('%s %s' % (_val.value_content, _action.data) if _action.data else '%s' % _val.value_content)
+                    else:
+                        # Update the handler payloads
+                        _action.handler_payloads.append(_action.payload())
+
                     # Refresh/set any updated arguments before generating the blob
                     _action.handler_payloads_count = len(_action.handler_payloads)
                         
