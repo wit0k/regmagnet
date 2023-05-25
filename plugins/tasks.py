@@ -1,3 +1,5 @@
+__version__ = '0.5'
+
 import logging
 import struct
 import argparse
