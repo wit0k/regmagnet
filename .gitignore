@@ -10,3 +10,7 @@ __pycache__
 .idea
 .DS_Store
 .vs_code
+regmagnet
+regmagnet/
+.vs
+.vs_code
