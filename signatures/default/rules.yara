@@ -1,3 +1,22 @@
+rule Suspicious_task_path {
+    meta:
+        author = "wit0k"
+        date = "2023-05-26"
+        description = "Triggers when a windows scheduled task path is located within suspicious folders"
+        reference = ""
+        mitre_tid = "['None']"
+    
+    strings:
+        $p1 = /handler_payloads\:.*Temp.*/ nocase
+        $p2 = /handler_payloads\:.*Malware.*/ nocase
+
+    condition:
+        //for all of ($p*) : (handler_payloads icontains "$")
+        //for all of ($p*) : (handler_payloads icontains $) //  syntax error, unexpected string identifier
+        //for any of ($p*) : (handler_payloads icontains $)
+        any of ($p*)
+}
+
 rule COM_Hijack_multi_payloads {
     meta:
         author = "wit0k"
