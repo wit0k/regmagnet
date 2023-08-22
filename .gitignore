@@ -14,3 +14,4 @@ regmagnet
 regmagnet/
 .vs
 .vs_code
+*.bin
