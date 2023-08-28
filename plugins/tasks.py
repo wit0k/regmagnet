@@ -13,11 +13,10 @@ from io import BytesIO
 from md.plugin import plugin
 from md.args import build_registry_handler
 from providers.provider import registry_provider
-
 from md.windows_scheduled_tasks import actions as task_actions
 from md.windows_scheduled_tasks import dynamic_info as task_dynamic_info
 from kaitaistruct import KaitaiStream
-from os.path import join, abspath, dirname
+from os.path import join, abspath, dirname, isdir
 import yara
 
 logger = logging.getLogger('regmagnet')
@@ -477,9 +476,14 @@ class windows_task(object):
         rule_matches = {}
 
         # Location of Yara rules 
-        # rules_folder = join(dirname(abspath(__file__)).rstrip('\/plugins\/tasks.py'), 'signatures')  # it cuts t??????
-        rules_folder = '/home/wit0k/repos/regmagnet/signatures'
+        # rules_folder = join(dirname(abspath(__file__)).rstrip('\/plugins\/tasks.py'), 'signatures\default')  # it cuts t??????
+        rules_folder = join(dirname(abspath(__file__)).strip('plugins'), 'signatures\default')
+
         
+        if not isdir(rules_folder):
+            logger.error(' [+] Error: %s' % 'Yara rules folder was not found! -> Location: %s' % rules_folder)
+            raise Exception('Yara rules folder was not found! -> Location: %s' % rules_folder)
+
         # Load all .yara files
         yara_rules = list(Path(rules_folder).rglob('*.yara'))
 
@@ -522,7 +526,7 @@ class windows_task(object):
                     else:
                         scan_variables[key] = 'None'
 
-            # Compile all available Yara rules with task and action variables
+            # Compile all available Yara rules with task and action variables (Unique per scan)
             rules = yara.compile(filepaths=rule_paths, externals=scan_variables)
 
             matches = rules.match(data=self.blob.get('buffer', b''))
@@ -734,6 +738,9 @@ class tasks(plugin):
                 # Trigger a Yara scan on Task's blob
                 if self.parsed_args.signature_scan_enabled:
                     
+                    if '{25C88A3A-21F1-4415-AA56-16FF1DF0D740}' in reg_item.key.key_path:
+                        pass
+
                     # Generate Task's blob for further Yara scanning
                     task_obj.yara_blob()
 
