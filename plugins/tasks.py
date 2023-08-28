@@ -155,6 +155,7 @@ class windows_task_action_flat(object):
                 'handler_type': self.handler_type,
                 'handler_type_str': self.handler_type_str,
                 'action_size': self.size,
+                'handler_payloads': str(self.handler_payloads),
             },
             'buffer': buffer.create(self.json())
         }
@@ -747,6 +748,8 @@ class tasks(plugin):
                     # Saves Task variables as new values
                     reg_item.add_values(task_obj.blob.get('variables', {}))
                     
+                    #Test
+                    print(task_obj.blob.get('buffer', ''))
                     # Scan Task
                     task_obj.scan()
 
