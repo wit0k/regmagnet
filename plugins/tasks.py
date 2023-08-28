@@ -739,8 +739,8 @@ class tasks(plugin):
                 # Trigger a Yara scan on Task's blob
                 if self.parsed_args.signature_scan_enabled:
                     
-                    if '{25C88A3A-21F1-4415-AA56-16FF1DF0D740}' in reg_item.key.key_path:
-                        pass
+                    # if '{25C88A3A-21F1-4415-AA56-16FF1DF0D740}' in reg_item.key.key_path:
+                    #    pass
 
                     # Generate Task's blob for further Yara scanning
                     task_obj.yara_blob()
