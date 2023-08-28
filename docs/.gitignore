@@ -1,0 +1,10 @@
+*.pyc
+*.geany
+*.nja
+*.vd
+*.csv
+*.xls
+*.xlsx
+*.reg
+.DS_Store
+*.bin
