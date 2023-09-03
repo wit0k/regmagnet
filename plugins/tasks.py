@@ -749,7 +749,7 @@ class tasks(plugin):
                     reg_item.add_values(task_obj.blob.get('variables', {}))
                     
                     #Test
-                    print(task_obj.blob.get('buffer', ''))
+                    # print(task_obj.blob.get('buffer', ''))
                     # Scan Task
                     task_obj.scan()
 
