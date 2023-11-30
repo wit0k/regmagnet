@@ -187,7 +187,7 @@ def main(argv):
             parser.export(items=items, output_path=args.output_file, format=args.output_format,
                           format_fields=args.fields_to_print)
     else:
-        logger.error('The parser could not find any hives to process ...')
+        logger.error('The parser could not find any hives to process...')
 
 if __name__ == "__main__":
     main(sys.argv)

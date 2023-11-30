@@ -671,6 +671,9 @@ class tasks(plugin):
         # -----------------------------------------------------------------------------------------------------------.
         # - At this stage the reg_item contains values related to given task from Tree and Tasks node
 
+        # Exclude items from baseline 
+        # tasks = self.return_items(tasks)
+        
         # Return all Tasks in raw format (not parsed)
         if self.parsed_args.raw_entries:
             return tasks
