@@ -1,4 +1,4 @@
-__version__ = '0.8'
+__version__ = '0.9'
 
 import logging
 import struct
@@ -15,6 +15,7 @@ from md.args import build_registry_handler
 from providers.provider import registry_provider
 from md.windows_scheduled_tasks import actions as task_actions
 from md.windows_scheduled_tasks import dynamic_info as task_dynamic_info
+from md.windows_scheduled_tasks import job_schedule as task_job_schedule
 from kaitaistruct import KaitaiStream
 from os.path import join, abspath, dirname, isdir
 import yara
@@ -380,6 +381,78 @@ class windows_task_dynamic_info(object):
         
         return None
 
+class windows_task_schedule(object):
+    
+    obj = None
+    """
+    start_boundary = None
+    end_boundary = None
+    unknown0 = None
+    repetition_interval_seconds = None
+    repetition_duration_seconds = None
+    execution_time_limit_seconds = None
+    mode = None
+    data1 = None
+    data2 = None
+    data3 = None
+    pad0 = None
+    stop_tasks_at_duration_end = None
+    is_enabled = None
+    pad1 = None
+    unknown1 = None
+    max_delay_seconds = None
+    pad2 = None
+    """
+
+    def __init__(self, buffer) -> None: 
+        
+        self.obj = task_job_schedule.JobSchedule(KaitaiStream(BytesIO(buffer)))
+    
+    def get_time(self, FILETIME_BUFFER, format='%Y-%m-%d %H:%M:%S.%f'): #wit0k, previous function
+                    
+        # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
+        EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+        HUNDREDS_OF_NANOSECONDS = 10000000
+
+        if FILETIME_BUFFER: 
+            # _filetime = int.from_bytes(FILETIME_BUFFER, byteorder='little', signed=True)
+            _filetime = FILETIME_BUFFER
+            try:
+
+                _datetime = datetime.utcfromtimestamp((_filetime - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+                _datetime_str = _datetime.strftime(format)
+                return _datetime_str
+            except Exception as msg:
+                return '%s - Error: %s' % (_filetime, str(msg))
+        
+        return None
+
+    def json(self):
+    
+        return {
+            "start_boundary_l": self.obj.start_boundary.filetime.low_date_time,
+            "start_boundary_h": self.obj.start_boundary.filetime.high_date_time,
+            "end_boundary_l": self.obj.end_boundary.filetime.low_date_time,
+            "end_boundary_h": self.obj.end_boundary.filetime.high_date_time,
+            "unknown0_l": self.obj.unknown0.filetime.low_date_time,
+            "unknown0_h": self.obj.unknown0.filetime.high_date_time,
+            "repetition_interval_seconds": self.obj.repetition_interval_seconds,
+            "repetition_duration_seconds": self.obj.repetition_duration_seconds,
+            "execution_time_limit_seconds": self.obj.execution_time_limit_seconds,
+            "mode": self.obj.mode,
+            "data1": self.obj.data1,
+            "data2": self.obj.data2,
+            "data3": self.obj.data3,
+            "pad0": self.obj.pad0,
+            "stop_tasks_at_duration_end": self.obj.stop_tasks_at_duration_end,
+            "is_enabled": self.obj.is_enabled,
+            "pad1": self.obj.pad1,
+            "unknown1": self.obj.unknown1,
+            "max_delay_seconds": self.obj.max_delay_seconds,
+            "pad2": self.obj.pad2
+        }
+
+
 class windows_task(object):
 
     class handler_type:
@@ -462,6 +535,9 @@ class windows_task(object):
 
         if self.DynamicInfo:
             self.data.dynamic_info = windows_task_dynamic_info(self.DynamicInfo)
+        
+        if self.Triggers:
+            self.data.triggers = windows_task_schedule(self.Triggers)
         
         # I need to add parsing support later
         self.data.sd = self.SD
@@ -671,9 +747,6 @@ class tasks(plugin):
         # -----------------------------------------------------------------------------------------------------------.
         # - At this stage the reg_item contains values related to given task from Tree and Tasks node
 
-        # Exclude items from baseline 
-        # tasks = self.return_items(tasks)
-        
         # Return all Tasks in raw format (not parsed)
         if self.parsed_args.raw_entries:
             return tasks
@@ -758,6 +831,15 @@ class tasks(plugin):
 
                 # Update Registry_item's tags
                 setattr(reg_item, 'tags', '%s' % '\n'.join(task_obj.detections) if task_obj.detections else 'None')
+
+                # Debug
+                # if '{4680A8DF-7B63-403E-ABB1-3FA7B77DE631}' in reg_item.get_path():
+                #    logger.error(reg_item.get_value("Triggers"))
+                # if '{4680A8DF-7B63-403E-ABB1-3FA7B77DE631}' in reg_item.get_path():
+                #    logger.error('DEBUG: %s' % reg_item.get_path())
+
+                #    logger.error(task_obj.data.triggers.json())
+                #    exit(0)
 
                 # Add item
                 _items.append(reg_item)

@@ -448,6 +448,13 @@ class registry_provider(object):
             
             return default
     
+        def get_path(self, reg_item=None, default=None):
+            
+            if reg_item is None : reg_item = self
+            
+            return reg_item.key.key_path
+
+
     class registry_reg_handler(object):
 
         def __init__(self, recipes, decode_param_from=None, custom_handlers=None):
@@ -1837,5 +1844,3 @@ class registry_provider(object):
             # Load the default provider
             self.provider = self.providers[__default_registry_provider__]
             self.name = __default_registry_provider__
-
-
