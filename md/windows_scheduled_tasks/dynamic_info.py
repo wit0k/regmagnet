@@ -23,3 +23,4 @@ class DynamicInfo(KaitaiStruct):
         self.last_successful_run_time = self._io.read_u8le()
 
 
+

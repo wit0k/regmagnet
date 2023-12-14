@@ -1,6 +1,10 @@
 __version__ = '0.9'
 
+from dataclasses import dataclass
+from inspect import isclass
 import logging
+from msilib.schema import File
+from operator import index
 import struct
 import argparse
 
@@ -9,6 +13,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 
 from io import BytesIO
+from typing import Type
 
 from md.plugin import plugin
 from md.args import build_registry_handler
@@ -16,9 +21,24 @@ from providers.provider import registry_provider
 from md.windows_scheduled_tasks import actions as task_actions
 from md.windows_scheduled_tasks import dynamic_info as task_dynamic_info
 from md.windows_scheduled_tasks import job_schedule as task_job_schedule
+from md.windows_scheduled_tasks import triggers as task_triggers
+
 from kaitaistruct import KaitaiStream
 from os.path import join, abspath, dirname, isdir
 import yara
+
+import ctypes
+import os
+from datetime import datetime, timedelta
+
+if os.name == 'nt':
+    import ctypes.wintypes
+    FILETIME = ctypes.wintypes.FILETIME
+else: # fallback
+    DWORD = ctypes.c_uint32
+    class FILETIME(ctypes.Structure):
+        _fields_ = [('dwLowDateTime', DWORD),
+                    ('dwHighDateTime', DWORD)]
 
 logger = logging.getLogger('regmagnet')
 
@@ -59,7 +79,7 @@ class buffer:
                 value = value.encode()
 
             elif isinstance(value, dict):
-                value = str('ERROR: Dict_Not_Supported_Yet').encode()
+                value = str('(dict)Unsupported').encode()
 
             elif isinstance(value, list):
                 value = str('|'.join(value)).encode()
@@ -79,22 +99,106 @@ class buffer:
         else:
             _buffer = b''
 
-        for key, value in buffer_dict.items():
-        
-            if isinstance(value, dict):
-                for key, value in value.items():
-                    _buffer += b'%s:%s|' % (key.encode(), buffer.convert_value(value))
+        for root_key, root_value in buffer_dict.items():                          
+            if isinstance(root_value, dict):
+                
+                for child_key, child_value in root_value.items():
+                    
+                    if isinstance(child_value, windows_task_triggers):
+                        for trigger_key, trigger_obj in child_value.json().items():
+                            _buffer += b'%s:%s|' % (trigger_key.encode(), buffer.convert_value(trigger_obj))
+                    
+                    elif isinstance(child_value, windows_task_actions):
+                        for action_obj in child_value.actions:
+                            if isinstance(action_obj, windows_task_action_flat):
+                                for action_key, action_data in action_obj.json().items():
+                                    _buffer += b'%s:%s|' % (action_key.encode(), buffer.convert_value(action_data))
+                                    
+                    elif isinstance(child_value, dict):
+                        _nested_keys_ = child_value.get('_nested_keys_', [])
+                        for string_key, a_value in child_value.items():
+                            if string_key in _nested_keys_:
+                                if isinstance(child_value[string_key], dict):
+                                    for value_name, value_data in child_value[string_key].items():
+                                        _buffer += b'%s:%s|' % (value_name.encode(), buffer.convert_value(value_data))
+                                elif isinstance(child_value[string_key], list):
+                                    for item in child_value[string_key]:
+                                        for value_name, value_data in item.items():
+                                            _buffer += b'%s:%s|' % (value_name.encode(), buffer.convert_value(value_data)) 
+                                else:
+                                    pass
+                                    
+                            else:
+                                _buffer += b'%s:%s|' % (string_key.encode(), buffer.convert_value(a_value))
+                    else:
+                        _buffer += b'%s:%s|' % (child_key.encode(), buffer.convert_value(child_value))
+
             else:
-                _buffer += b'%s:%s|' % (key.encode(), buffer.convert_value(value))
-        
+                _buffer += b'%s:%s|' % (root_key.encode(), buffer.convert_value(root_value))
+                
         return _buffer
-            
-class windows_task_parsed_data(object):
+
+class helpers(object):
+    
+    def from_filetime(FILETIME_BUFFER, format='%Y-%m-%d %H:%M:%S.%f') -> str:
+        # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
+        EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+        HUNDREDS_OF_NANOSECONDS = 10000000
+
+        if FILETIME_BUFFER: 
+            # _filetime = int.from_bytes(FILETIME_BUFFER, byteorder='little', signed=True)
+            _filetime = FILETIME_BUFFER
+            try:
+                _datetime = datetime.utcfromtimestamp((_filetime - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+                _datetime_str = _datetime.strftime(format)
+                return _datetime_str
+            except Exception as msg:
+                return '%s - Error: %s' % (_filetime, str(msg))
+        
+        return ''
+    
+    def bytes_to_filetime(timestamp_bytes, format='%Y-%m-%d %H:%M:%S.%f'):
+        try:
+        
+            t = FILETIME.from_buffer_copy(timestamp_bytes)
+            quadword = (t.dwHighDateTime << 32) + t.dwLowDateTime
+            us = quadword // 10 - 11644473600000000
+            return (datetime(1970, 1, 1) + timedelta(microseconds=us)).strftime(format)
+        except:
+            return '%s' % us
+    
+    def filetime_to_stime(t, format='%Y-%m-%d %H:%M:%S.%f'):
+        ts = 0
+        try:
+            if t.high_date_time != 0 or t.low_date_time != 0:
+                quadword = (t.high_date_time << 32) + t.low_date_time
+                ts = quadword // 10 - 11644473600000000
+                # ts = (quadword / 10000000) - 11644473600000000
+
+                if ts == 0 or ts >= 1833029933770955161:
+                    return '%s' % 0 
+                else:
+                    return (datetime(1970, 1, 1) + timedelta(microseconds=ts)).strftime(format)
+            else:
+                return '%s' % 0 
+
+        except:
+            return '%s' % ts
+    
+    def int_to_bytes(int_variable, bytes_length, order='little', signed=False):
+        # return (int_variable).to_bytes(bytes_length, byteorder='big'|'little').hex()
+        return (int_variable).to_bytes(bytes_length, byteorder=order, signed=signed)
+    
+        def cast_uint(n): 
+          return ctypes.c_uint(n)
+      
+        def cast_ulong(n): 
+          return ctypes.c_ulong(n) 
+
+class windows_task_registry_blobs(object):
 
     actions = None
     dynamic_info = None
-    job_schedule = None
-    optional_settings = None
     triggers = None
     user_info = None
     sd = None
@@ -102,20 +206,19 @@ class windows_task_parsed_data(object):
     def __init__(self):
         pass
 
-    def json(self):
+    def json(self, flat=True):
         
         return {
-            'actions': self.actions,
-            'dynamic_info': self.dynamic_info,
-            'job_schedule': self.job_schedule,
-            'optional_settings': self.optional_settings,
-            'triggers': self.triggers,
-            'user_info': self.user_info,
-            'security_descriptor': self.sd,
+            'actions': self.actions.json(flat=flat) if self.actions else {},
+            'dynamic_info': self.dynamic_info.json(flat=flat) if self.dynamic_info else {},
+            'triggers': self.triggers.json(flat=flat) if self.triggers else {},
+            # 'user_info': self.user_info,
+            # 'security_descriptor': self.sd,
         }
 
 class windows_task_action_flat(object):
 
+    index   = None 
     version = None 
     context = None
     handler_type = None
@@ -140,55 +243,64 @@ class windows_task_action_flat(object):
     attachment_filenames = None
     num_headers = None
     headers = None
-    blob = None
     size = None
 
     def __init__(self, field_names=None) -> None:
         pass
     
-    def yara_blob(self):
+    def variables(self, flat=False) -> dict:
         
-        self.blob =  { 
-            'variables': {
-                '%s_headers_count' % windows_task.handler_type.name(windows_task.handler_type.SEND_EMAIL).lower(): self.num_headers,
-                '%s_attachments_count' % windows_task.handler_type.name(windows_task.handler_type.SEND_EMAIL).lower(): self.num_attachment_filenames,
-                '%s_payloads_count' % windows_task.handler_type.name(windows_task.handler_type.COM_HANDLER).lower(): self.handler_payloads_count,
-                'handler_type': self.handler_type,
-                'handler_type_str': self.handler_type_str,
-                'action_size': self.size,
-                'handler_payloads': str(self.handler_payloads),
-            },
-            'buffer': buffer.create(self.json())
+        if flat == True:
+            action_prefix = 'action.%s.' % self.index
+        else:
+            action_prefix = ''
+            
+        return { 
+            '%s%s_headers_count' % (action_prefix, windows_task.handler_type.name(windows_task.handler_type.SEND_EMAIL).lower()): self.num_headers,
+            '%s%s_attachments_count' % (action_prefix, windows_task.handler_type.name(windows_task.handler_type.SEND_EMAIL).lower()): self.num_attachment_filenames,
+            '%s%s_payloads_count' % (action_prefix, windows_task.handler_type.name(windows_task.handler_type.COM_HANDLER).lower()): self.handler_payloads_count,
+            '%shandler_type' % action_prefix: self.handler_type,
+            '%shandler_type_str' % action_prefix: self.handler_type_str,
+            '%saction_size' % action_prefix: self.size,
+            '%shandler_payloads' % action_prefix: str(self.handler_payloads),
         }
-
-        return self.blob
-
+    
+    def buffer(self):
+         return buffer.create(self.json())
         
-    def json(self, field_names=None) -> None:
+    def json(self, flat=False) -> dict:
+        
+        if flat == True:
+            action_prefix = 'action.%s.' % self.index
+        else:
+            action_prefix = ''
+        
         return {
-            "handler_payloads_count": self.handler_payloads_count,
-            "handler_payloads": self.handler_payloads,
-            "handler_type": self.handler_type,
-            "version": self.version,
-            "context": self.context,
-            "clsid": self.clsid,
-            "data": self.data,
-            "command": self.command,
-            "arguments": self.arguments,
-            "working_directory": self.working_directory,
-            "caption": self.caption,
-            "content": self.content,
-            "to": self.to,
-            "cc": self.cc,
-            "bcc": self.bcc,
-            "reply_to": self.reply_to,
-            "server": self.server,
-            "subject": self.subject,
-            "body": self.body,
-            "num_attachment_filenames": self.num_attachment_filenames,
-            "attachment_filenames": self.attachment_filenames,
-            "num_headers": self.num_headers,
-            "headers": self.headers,
+            "%sindex" % action_prefix: self.index,
+            "%ssize" % action_prefix: self.size,
+            "%shandler_payloads_count" % action_prefix: self.handler_payloads_count,
+            "%shandler_payloads" % action_prefix: self.handler_payloads,
+            "%shandler_type" % action_prefix: self.handler_type,
+            "%sversion" % action_prefix: self.version,
+            "%scontext" % action_prefix: self.context,
+            "%sclsid" % action_prefix: self.clsid,
+            "%sdata" % action_prefix: self.data,
+            "%scommand" % action_prefix: self.command,
+            "%sarguments" % action_prefix: self.arguments,
+            "%sworking_directory" % action_prefix: self.working_directory,
+            "%scaption" % action_prefix: self.caption,
+            "%scontent" % action_prefix: self.content,
+            "%sto" % action_prefix: self.to,
+            "%scc" % action_prefix: self.cc,
+            "%sbcc" % action_prefix: self.bcc,
+            "%sreply_to" % action_prefix: self.reply_to,
+            "%sserver" % action_prefix: self.server,
+            "%ssubject" % action_prefix: self.subject,
+            "%sbody" % action_prefix: self.body,
+            "%snum_attachment_filenames" % action_prefix: self.num_attachment_filenames,
+            "%sattachment_filenames" % action_prefix: self.attachment_filenames,
+            "%snum_headers" % action_prefix: self.num_headers,
+            "%sheaders" % action_prefix: self.headers,
         }
     
     def __repr__(self) -> str:
@@ -237,10 +349,12 @@ class windows_task_actions(object):
             self.obj = obj
             self.actions = []
             
+            index = 1
             # Parse each action to windows_task_action_flat object 
             for _Action in self.obj.actions:
                 
-                _Action_obj = windows_task_action_flat()    
+                _Action_obj = windows_task_action_flat()
+                _Action_obj.index = index
                 _Action_obj.version = self.obj.version
                 self.version = self.obj.version
                 _Action_obj.context = self.obj.context.str
@@ -288,12 +402,11 @@ class windows_task_actions(object):
                     _Action_obj.handler_type_str = windows_task.handler_type.name(windows_task.handler_type.SEND_EMAIL)
                 
                 # Add parsed action
-                _Action_obj.blob = _Action_obj.yara_blob()
-                _Action_obj.size = len(_Action_obj.blob.get('buffer', b''))
-                _Action_obj.blob['variables']['action_size'] = _Action_obj.size
-
+                _Action_obj.size = len(_Action_obj.buffer())
+                
                 self.actions.append(_Action_obj)
-            
+                index += 1
+                
             self.count = len(self.actions)
 
     def dynamic_parse(input_data):
@@ -339,9 +452,36 @@ class windows_task_actions(object):
                     
     def __repr__(self) -> str:
         return '\n'.join([a for a in self.actions])
+    
+    def json(self, flat=True):
+        
+        actions_data = {}
+        
+        if flat == False:
+            actions_data.update({
+                '_nested_keys_': ['actions'],
+                'actions': []
+            })
+        
+        action_index = 1
+        for action in self.actions:
+            
+            if flat == True: 
+                for key, value in action.json().items():
+                    actions_data['action.%s.%s' % (action_index,key)] = value
+            else:
+                json_data = {}
+                for key, value in action.json().items():
+                    json_data.update({'action_%s' % key: value})
+                
+                actions_data['actions'].append(json_data)
+            action_index += 1
+        
+        return actions_data
 
 class windows_task_dynamic_info(object):
     
+    obj = None
     magic = None
     creation_time = None
     last_run_time = None
@@ -351,107 +491,119 @@ class windows_task_dynamic_info(object):
 
     def __init__(self, buffer) -> None: 
         
-        obj = task_dynamic_info.DynamicInfo(KaitaiStream(BytesIO(buffer)))
+        self.obj = task_dynamic_info.DynamicInfo(KaitaiStream(BytesIO(buffer)))
         
-        if obj:
-
-            self.magic = str(obj.magic)
-            self.creation_time = self.get_time(obj.creation_time)
-            self.last_run_time = self.get_time(obj.last_run_time)
-            self.task_state = obj.task_state
-            self.last_error_code = obj.last_error_code
-            self.last_successful_run_time = self.get_time(obj.last_successful_run_time)
+        if self.obj:
+            self.magic = str(self.obj.magic)
+            self.creation_time = helpers.from_filetime(self.obj.creation_time)
+            self.last_run_time = helpers.from_filetime(self.obj.last_run_time)
+            self.task_state = self.obj.task_state
+            self.last_error_code = self.obj.last_error_code
+            self.last_successful_run_time = helpers.from_filetime(self.obj.last_successful_run_time)
     
-    def get_time(self, FILETIME_BUFFER, format='%Y-%m-%d %H:%M:%S.%f'): #wit0k, previous function
-                    
-        # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
-        EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
-        HUNDREDS_OF_NANOSECONDS = 10000000
-
-        if FILETIME_BUFFER: 
-            # _filetime = int.from_bytes(FILETIME_BUFFER, byteorder='little', signed=True)
-            _filetime = FILETIME_BUFFER
-            try:
-
-                _datetime = datetime.utcfromtimestamp((_filetime - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
-                _datetime_str = _datetime.strftime(format)
-                return _datetime_str
-            except Exception as msg:
-                return '%s - Error: %s' % (_filetime, str(msg))
-        
-        return None
-
-class windows_task_schedule(object):
+    def json(self, flat=True):
+        if flat == False:
+            return {
+                '_nested_keys_': ['dynamic_info'],
+                'dynamic_info': {
+                    'magic': self.magic,
+                    'creation_time': self.creation_time,
+                    'last_run_time': self.last_run_time,
+                    'task_state': self.task_state,
+                    'last_error_code': self.last_error_code,
+                    'last_successful_run_time': self.last_successful_run_time,
+                }
+            }
+        else:
+            return {
+                'dynamic_info_magic': self.magic,
+                'dynamic_info_creation_time': self.creation_time,
+                'dynamic_info_last_run_time': self.last_run_time,
+                'dynamic_info_task_state': self.task_state,
+                'dynamic_info_last_error_code': self.last_error_code,
+                'dynamic_info_last_successful_run_time': self.last_successful_run_time,
+            }
+    
+class windows_task_triggers(object):
     
     obj = None
-    """
-    start_boundary = None
-    end_boundary = None
-    unknown0 = None
-    repetition_interval_seconds = None
-    repetition_duration_seconds = None
-    execution_time_limit_seconds = None
-    mode = None
-    data1 = None
-    data2 = None
-    data3 = None
-    pad0 = None
-    stop_tasks_at_duration_end = None
-    is_enabled = None
-    pad1 = None
-    unknown1 = None
-    max_delay_seconds = None
-    pad2 = None
-    """
-
+    
+    def json(self, flat=True):
+        
+        triggers_data = {}
+        
+        if flat == False:
+            triggers_data.update({
+                '_nested_keys_': ['triggers'],
+                'triggers': []
+            })
+        
+        # Parse Task Triggers 
+        tr_index = 1
+        for tr in self.obj.triggers:
+            properties_obj = None
+            trigger_type_str = None
+            
+            if tr.magic.value == 34952:
+                trigger_type_str = 'RegistrationTrigger'
+            elif tr.magic.value == 43690:
+                trigger_type_str = 'LogonTrigger'
+            elif tr.magic.value == 65535:
+                trigger_type_str = 'BootTrigger'
+            elif tr.magic.value == 30583:
+                trigger_type_str = 'SessionChangeTrigger'
+            elif tr.magic.value == 61166:
+                trigger_type_str = 'IdleTrigger'
+            elif tr.magic.value == 52428:
+                trigger_type_str = 'EventTrigger'
+            elif tr.magic.value == 56797:
+                trigger_type_str = 'TimeTrigger'
+            elif tr.magic.value == 26214:
+                trigger_type_str = 'WnfStateChangeTrigger'
+                
+            if getattr(tr.properties, 'job_schedule', None):
+                properties_obj = tr.properties.job_schedule
+            elif getattr(tr.properties, 'generic_data', None):
+                properties_obj = tr.properties.generic_data
+            
+            if flat == True:
+                prefix = 'trigger.%s.' % tr_index
+                
+                if properties_obj:
+                    triggers_data.update({
+                        '%stype' % prefix: trigger_type_str, 
+                        '%sstart_boundary' % prefix: helpers.filetime_to_stime(properties_obj.start_boundary.filetime),
+                        '%send_boundary' % prefix: helpers.filetime_to_stime(properties_obj.end_boundary.filetime),
+                        '%srepetition_interval_seconds' % prefix: properties_obj.repetition_interval_seconds,
+                    })
+            else:
+                prefix = 'trigger_'
+                
+                if properties_obj:
+                    triggers_data['triggers'].append({
+                        'index': tr_index, 
+                        '%stype' % prefix: trigger_type_str, 
+                        '%sstart_boundary' % prefix: helpers.filetime_to_stime(properties_obj.start_boundary.filetime),
+                        '%send_boundary' % prefix: helpers.filetime_to_stime(properties_obj.end_boundary.filetime),
+                        '%srepetition_interval_seconds' % prefix: properties_obj.repetition_interval_seconds,
+                    })                
+            
+            tr_index+=1
+                
+        triggers_data.update({
+            'triggers_count': self.triggers_count,
+            'triggers_start_boundary': self.triggers_start_boundary,
+            'triggers_end_boundary': self.triggers_end_boundary,
+        }) 
+        
+        return triggers_data
+    
     def __init__(self, buffer) -> None: 
         
-        self.obj = task_job_schedule.JobSchedule(KaitaiStream(BytesIO(buffer)))
-    
-    def get_time(self, FILETIME_BUFFER, format='%Y-%m-%d %H:%M:%S.%f'): #wit0k, previous function
-                    
-        # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
-        EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
-        HUNDREDS_OF_NANOSECONDS = 10000000
-
-        if FILETIME_BUFFER: 
-            # _filetime = int.from_bytes(FILETIME_BUFFER, byteorder='little', signed=True)
-            _filetime = FILETIME_BUFFER
-            try:
-
-                _datetime = datetime.utcfromtimestamp((_filetime - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
-                _datetime_str = _datetime.strftime(format)
-                return _datetime_str
-            except Exception as msg:
-                return '%s - Error: %s' % (_filetime, str(msg))
-        
-        return None
-
-    def json(self):
-    
-        return {
-            "start_boundary_l": self.obj.start_boundary.filetime.low_date_time,
-            "start_boundary_h": self.obj.start_boundary.filetime.high_date_time,
-            "end_boundary_l": self.obj.end_boundary.filetime.low_date_time,
-            "end_boundary_h": self.obj.end_boundary.filetime.high_date_time,
-            "unknown0_l": self.obj.unknown0.filetime.low_date_time,
-            "unknown0_h": self.obj.unknown0.filetime.high_date_time,
-            "repetition_interval_seconds": self.obj.repetition_interval_seconds,
-            "repetition_duration_seconds": self.obj.repetition_duration_seconds,
-            "execution_time_limit_seconds": self.obj.execution_time_limit_seconds,
-            "mode": self.obj.mode,
-            "data1": self.obj.data1,
-            "data2": self.obj.data2,
-            "data3": self.obj.data3,
-            "pad0": self.obj.pad0,
-            "stop_tasks_at_duration_end": self.obj.stop_tasks_at_duration_end,
-            "is_enabled": self.obj.is_enabled,
-            "pad1": self.obj.pad1,
-            "unknown1": self.obj.unknown1,
-            "max_delay_seconds": self.obj.max_delay_seconds,
-            "pad2": self.obj.pad2
-        }
-
+        self.obj = task_triggers.Triggers(KaitaiStream(BytesIO(buffer)))
+        self.triggers_count = len(self.obj.triggers)
+        self.triggers_start_boundary = helpers.filetime_to_stime(self.obj.header.start_boundary.filetime)
+        self.triggers_end_boundary = helpers.filetime_to_stime(self.obj.header.end_boundary.filetime)
 
 class windows_task(object):
 
@@ -476,7 +628,7 @@ class windows_task(object):
             return windows_task.handler_type.names.get(handler_type_id, windows_task.handler_type.names[windows_task.handler_type.UNSUPPORTED])
         
     field_names = None
-    data = None
+    registry_binary_blobs = None
     Path = None
     Uri = None
     SD = None
@@ -486,36 +638,37 @@ class windows_task(object):
     blob = None
     detections = None
 
-    def yara_blob(self):
+    def variables(self) -> dict:
         
-        self.blob =  { 
-            'variables': {
-                'actions_count': self.data.actions.count,                                                           # Count of Actions 
-                'actions_size': len(self.Actions),                                                                  # Total size of Actions buffer (in bytes)
-                'actions_version': self.data.actions.version,                                                       # Actions Magic
-                'actions_context': self.data.actions.context,                                                       # User context to execute the task/actions
-                'actions_biggest_size': max([action.size for action in self.data.actions.actions]) ,                # The size of a biggest action
-                'actions_smallest_size': min([action.size for action in self.data.actions.actions]),                # The size of a smallest action
-                'dynamic_info_magic': self.data.dynamic_info.magic,                                                 # DynamicInfo Magic
-                'dynamic_info_creation_time': self.data.dynamic_info.creation_time,                                 # DynamicInfo Task creation time
-                'dynamic_info_last_run_time': self.data.dynamic_info.last_run_time,                                 # DynamicInfo Task Last Run time
-                'dynamic_info_task_state': self.data.dynamic_info.task_state,                                       # DynamicInfo Task State
-                'dynamic_info_last_error_code': self.data.dynamic_info.last_error_code,                             # DynamicInfo Last Error Code returned
-                'dynamic_info_last_successful_run_time': self.data.dynamic_info.last_successful_run_time,           # DynamicInfo Last Successful run time
-            }, 
-            'actions': self.data.actions.actions,
-            'buffer': buffer.create(self.json()),
+        return {
+            'actions_count': self.registry_binary_blobs.actions.count,                                                           # Count of Actions 
+            'actions_size': len(self.Actions),                                                                                   # Total size of Actions buffer (in bytes)
+            'actions_version': self.registry_binary_blobs.actions.version,                                                       # Actions Magic
+            'actions_context': self.registry_binary_blobs.actions.context,                                                       # User context to execute the task/actions
+            'actions_biggest_size': max([action.size for action in self.registry_binary_blobs.actions.actions]) ,                # The size of a biggest action
+            'actions_smallest_size': min([action.size for action in self.registry_binary_blobs.actions.actions]),                # The size of a smallest action
+            'dynamic_info_magic': self.registry_binary_blobs.dynamic_info.magic,                                                 # DynamicInfo Magic
+            'dynamic_info_creation_time': self.registry_binary_blobs.dynamic_info.creation_time,                                 # DynamicInfo Task creation time
+            'dynamic_info_last_run_time': self.registry_binary_blobs.dynamic_info.last_run_time,                                 # DynamicInfo Task Last Run time
+            'dynamic_info_task_state': self.registry_binary_blobs.dynamic_info.task_state,                                       # DynamicInfo Task State
+            'dynamic_info_last_error_code': self.registry_binary_blobs.dynamic_info.last_error_code,                             # DynamicInfo Last Error Code returned
+            'dynamic_info_last_successful_run_time': self.registry_binary_blobs.dynamic_info.last_successful_run_time,           # DynamicInfo Last Successful run time
+            'triggers_count': self.registry_binary_blobs.triggers.triggers_count,
+            'triggers_start_boundary': self.registry_binary_blobs.triggers.triggers_count,
+            'triggers_end_boundary': self.registry_binary_blobs.triggers.triggers_end_boundary,
         }
-        return self.blob
     
-    def json(self):
+    def buffer(self, flat=False):
+        return buffer.create(self.json(flat=False))
+    
+    def json(self, flat=True):
 
         ret  = {field_name: self.__getattribute__(field_name) for field_name in self.field_names}
-        ret['data'] = self.data.json()
+        ret['data'] = self.registry_binary_blobs.json(flat=flat)
         return ret
 
     def __repr__(self) -> str:
-        return 'Task: %s -> [Author: %s] -> Actions Count: %s' % (self.Path, self.Author, self.data.actions.count)
+        return 'Task: %s -> [Author: %s] -> Actions Count: %s' % (self.Path, self.Author, self.registry_binary_blobs.actions.count)
     
     def add_field(self, name, value):
         self.field_names.append(name)
@@ -524,23 +677,22 @@ class windows_task(object):
     def __init__(self, field_names=None) -> None:
         
         if field_names is None: self.field_names = []
-        self.data = windows_task_parsed_data()
+        self.registry_binary_blobs = windows_task_registry_blobs()
     
     def process(self):
-        """ Translate Raw Task Buffers/Values to corresponding objects
-        """
+        """ Translate Raw Task Buffers/Values to corresponding objects """
         
         if self.Actions:
-            self.data.actions = windows_task_actions(self.Actions)
+            self.registry_binary_blobs.actions = windows_task_actions(self.Actions)
 
         if self.DynamicInfo:
-            self.data.dynamic_info = windows_task_dynamic_info(self.DynamicInfo)
+            self.registry_binary_blobs.dynamic_info = windows_task_dynamic_info(self.DynamicInfo)
         
         if self.Triggers:
-            self.data.triggers = windows_task_schedule(self.Triggers)
+            self.registry_binary_blobs.triggers = windows_task_triggers(self.Triggers)
         
         # I need to add parsing support later
-        self.data.sd = self.SD
+        self.registry_binary_blobs.sd = self.SD
     
     def scan(self):
         
@@ -582,16 +734,16 @@ class windows_task(object):
             rule_paths[name_space] = yara_file._str
 
         # Variable names which would be send to Yara engine
-        task_variables = self.blob.get('variables', {})
+        task_variables = self.variables()
 
-        for action in self.blob.get('actions', []):
-            
+        # Scan actions separately
+        for action in self.registry_binary_blobs.actions.actions:    
             scan_variables = None
 
             # Pull action specific variables 
-            action_variables = action.blob.get('variables', {})
-
-            # Copy Task and Action variables (Action variables may hold unique values per Action scan)
+            action_variables = action.variables()
+            
+            # Merge Task and Action variables (Action variables may hold unique values per Action scan)
             scan_variables = task_variables.copy()
             scan_variables.update(action_variables.copy())
             
@@ -606,8 +758,9 @@ class windows_task(object):
             # Compile all available Yara rules with task and action variables (Unique per scan)
             rules = yara.compile(filepaths=rule_paths, externals=scan_variables)
 
-            matches = rules.match(data=self.blob.get('buffer', b''))
-
+            # Look for a match
+            matches = rules.match(data=action.buffer())
+            
             for match in matches:
                 rule_matches[match.rule] = {
                     'description': match.meta.get('description', ''),
@@ -763,15 +916,15 @@ class tasks(plugin):
                 for reg_value in reg_item.values:
                     task_obj.add_field(reg_value.value_name, reg_value.value_content)
                 
-                # Process Task fields
+                # Process Task fields / True init function
                 task_obj.process()
 
                 index = 0
-                # Enrich Action data
-                for _action in task_obj.data.actions.actions:
+                # Enrich data
+                for _action in task_obj.registry_binary_blobs.actions.actions:
                     
                     index += 1
-                    _action_prefix = 'Action.%s' % index
+                    #_action_prefix = 'Action.%s' % index
 
                     if _action.handler_payloads is None: _action.handler_payloads = []
                     if _action.handler_payloads_count is None: _action.handler_payloads_count = 0
@@ -800,47 +953,36 @@ class tasks(plugin):
                         # Update the handler payloads
                         _action.handler_payloads.append(_action.payload())
 
-                    # Refresh/set any updated arguments before generating the blob
+                    # Refresh/set any updated arguments (that might affect .variables())
                     _action.handler_payloads_count = len(_action.handler_payloads)
-                        
-                    # Generate Action blob for further scanning
-                    _action.blob = _action.yara_blob()
-                    
+                                        
                     # Saves Action variables as new values
-                    reg_item.add_values(_action.blob.get('variables', {}), _action_prefix)
+                    reg_item.add_values(_action.variables(flat=True))
 
                     # Saves Action fields as new values
-                    reg_item.add_values(_action.json(), _action_prefix)
+                    # reg_item.add_values(_action.json(), _action_prefix)
+                    reg_item.add_values(_action.json(flat=True))
 
-                # Trigger a Yara scan on Task's blob
+                # Saves parsed task's variables as new values
+                reg_item.add_values(task_obj.variables())
+                    
+                # Saves parsed triggers as new values
+                reg_item.add_values(task_obj.registry_binary_blobs.triggers.json(flat=True))
+                    
+                # Trigger a Yara scan on a Task
                 if self.parsed_args.signature_scan_enabled:
                     
-                    # if '{25C88A3A-21F1-4415-AA56-16FF1DF0D740}' in reg_item.key.key_path:
-                    #    pass
-
-                    # Generate Task's blob for further Yara scanning
-                    task_obj.yara_blob()
-
-                    # Saves Task variables as new values
-                    reg_item.add_values(task_obj.blob.get('variables', {}))
-                    
-                    #Test
-                    # print(task_obj.blob.get('buffer', ''))
-                    # Scan Task
                     task_obj.scan()
 
                 # Update Registry_item's tags
                 setattr(reg_item, 'tags', '%s' % '\n'.join(task_obj.detections) if task_obj.detections else 'None')
 
                 # Debug
-                # if '{4680A8DF-7B63-403E-ABB1-3FA7B77DE631}' in reg_item.get_path():
-                #    logger.error(reg_item.get_value("Triggers"))
-                # if '{4680A8DF-7B63-403E-ABB1-3FA7B77DE631}' in reg_item.get_path():
+                #if '{419C821C-CF0E-423C-8033-206B1AE4EA3B}' in reg_item.get_path():
                 #    logger.error('DEBUG: %s' % reg_item.get_path())
-
-                #    logger.error(task_obj.data.triggers.json())
-                #    exit(0)
-
+                #    logger.error(task_obj.buffer())
+                #    # exit(0)
+                                
                 # Add item
                 _items.append(reg_item)
 

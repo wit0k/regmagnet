@@ -18,4 +18,3 @@ class Filetime(KaitaiStruct):
         self.low_date_time = self._io.read_u4le()
         self.high_date_time = self._io.read_u4le()
 
-

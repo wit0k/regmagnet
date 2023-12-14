@@ -56,3 +56,31 @@ rule Hidden_Task_security_descriptor_abuse {
     condition:
         $SD_IS_EMPTY or $SD_IS_MISSING
 }
+
+rule Triggers_Test_Rules {
+    meta:
+        author = "wit0k"
+        date = "2023-12-10"
+        description = "Triggers when a task has more than 1 Trigger"
+        reference = "..."
+        mitre_tid = "['None']"
+
+    strings:
+        $trigger_start_boundary = /start_boundary\:2023\-12\-09.*/ nocase
+
+    condition:
+        triggers_count > 2 and $trigger_start_boundary
+}
+
+rule Manual_Task {
+    meta:
+        author = "wit0k"
+        date = "2023-12-14"
+        description = "Triggers when a task was most likely executed manually and without automatic Triggers"
+        reference = "..."
+        mitre_tid = "['None']"
+
+    condition:
+        triggers_count == 0 and (dynamic_info_last_run_time != "" or dynamic_info_last_run_time != "None") and triggers_count == 0
+}
+
