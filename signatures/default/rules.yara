@@ -1,4 +1,4 @@
-rule Suspicious_task_path {
+rule Suspicious_Task_path {
     meta:
         author = "wit0k"
         date = "2023-05-26"
@@ -7,7 +7,7 @@ rule Suspicious_task_path {
         mitre_tid = "['None']"
     
     strings:
-        $p1 = /handler_payloads\:.*Temp.*/ nocase
+        $p1 = /handler_payloads\:.*\\Temp.*/ nocase
         $p2 = /handler_payloads\:.*Malware.*/ nocase
 
     condition:
@@ -57,11 +57,23 @@ rule Hidden_Task_security_descriptor_abuse {
         $SD_IS_EMPTY or $SD_IS_MISSING
 }
 
-rule Triggers_Test_Rules {
+rule Info_Recent_Manual_Trigger {
+    meta:
+        author = "wit0k"
+        date = "2023-12-14"
+        description = "Triggers for Scheduled Tasks, executed without any Triggers within last 3 days"
+        reference = "..."
+        mitre_tid = "['None']"
+
+    condition:
+        triggers_count == 0 and dynamic_last_run_time_epoch >= ep_3d_ago
+}
+
+rule Test_Rule_1 {
     meta:
         author = "wit0k"
         date = "2023-12-10"
-        description = "Triggers when a task has more than 1 Trigger"
+        description = "Triggers when a task has more than 2 Triggers and specific string"
         reference = "..."
         mitre_tid = "['None']"
 
@@ -71,16 +83,3 @@ rule Triggers_Test_Rules {
     condition:
         triggers_count > 2 and $trigger_start_boundary
 }
-
-rule Manual_Task {
-    meta:
-        author = "wit0k"
-        date = "2023-12-14"
-        description = "Triggers when a task was most likely executed manually and without automatic Triggers"
-        reference = "..."
-        mitre_tid = "['None']"
-
-    condition:
-        triggers_count == 0 and (dynamic_info_last_run_time != "" or dynamic_info_last_run_time != "None") and triggers_count == 0
-}
-

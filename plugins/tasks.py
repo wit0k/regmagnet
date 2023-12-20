@@ -1,7 +1,7 @@
 __version__ = '0.9'
 
-from dataclasses import dataclass
-from inspect import isclass
+#from dataclasses import dataclass
+#from inspect import isclass
 import logging
 from msilib.schema import File
 from operator import index
@@ -26,10 +26,10 @@ from md.windows_scheduled_tasks import triggers as task_triggers
 from kaitaistruct import KaitaiStream
 from os.path import join, abspath, dirname, isdir
 import yara
+from md.time_class import days_ago
 
 import ctypes
 import os
-from datetime import datetime, timedelta
 
 if os.name == 'nt':
     import ctypes.wintypes
@@ -156,6 +156,24 @@ class helpers(object):
                 return '%s - Error: %s' % (_filetime, str(msg))
         
         return ''
+    
+    def from_filetime_to_epoch(FILETIME_BUFFER, format='%Y-%m-%d %H:%M:%S.%f') -> int:
+        # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
+        EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
+        HUNDREDS_OF_NANOSECONDS = 10000000
+
+        if FILETIME_BUFFER: 
+            # _filetime = int.from_bytes(FILETIME_BUFFER, byteorder='little', signed=True)
+            _filetime = FILETIME_BUFFER
+            try:
+                _datetime = datetime.utcfromtimestamp((_filetime - EPOCH_AS_FILETIME) / HUNDREDS_OF_NANOSECONDS)
+                return _datetime.timestamp()
+            
+            except Exception as msg:
+                # return '%s - Error: %s' % (_filetime, str(msg))
+                return 0
+        
+        return 0
     
     def bytes_to_filetime(timestamp_bytes, format='%Y-%m-%d %H:%M:%S.%f'):
         try:
@@ -497,9 +515,12 @@ class windows_task_dynamic_info(object):
             self.magic = str(self.obj.magic)
             self.creation_time = helpers.from_filetime(self.obj.creation_time)
             self.last_run_time = helpers.from_filetime(self.obj.last_run_time)
+            self.creation_time_epoch = helpers.from_filetime_to_epoch(self.obj.creation_time)
+            self.last_run_time_epoch = helpers.from_filetime_to_epoch(self.obj.last_run_time)
             self.task_state = self.obj.task_state
             self.last_error_code = self.obj.last_error_code
             self.last_successful_run_time = helpers.from_filetime(self.obj.last_successful_run_time)
+            self.last_successful_run_time_epoch = helpers.from_filetime_to_epoch(self.obj.last_successful_run_time)
     
     def json(self, flat=True):
         if flat == False:
@@ -509,9 +530,12 @@ class windows_task_dynamic_info(object):
                     'magic': self.magic,
                     'creation_time': self.creation_time,
                     'last_run_time': self.last_run_time,
+                    'creation_time_epoch': self.creation_time_epoch,
+                    'last_run_time_epoch': self.last_run_time_epoch,
                     'task_state': self.task_state,
                     'last_error_code': self.last_error_code,
                     'last_successful_run_time': self.last_successful_run_time,
+                    'last_successful_run_time_epoch': self.last_successful_run_time_epoch,
                 }
             }
         else:
@@ -519,9 +543,12 @@ class windows_task_dynamic_info(object):
                 'dynamic_info_magic': self.magic,
                 'dynamic_info_creation_time': self.creation_time,
                 'dynamic_info_last_run_time': self.last_run_time,
+                'dynamic_creation_time_epoch': self.creation_time_epoch,
+                'dynamic_last_run_time_epoch': self.last_run_time_epoch,
                 'dynamic_info_task_state': self.task_state,
                 'dynamic_info_last_error_code': self.last_error_code,
                 'dynamic_info_last_successful_run_time': self.last_successful_run_time,
+                'dynamic_last_successful_run_time_epoch': self.last_successful_run_time_epoch,
             }
     
 class windows_task_triggers(object):
@@ -653,9 +680,17 @@ class windows_task(object):
             'dynamic_info_task_state': self.registry_binary_blobs.dynamic_info.task_state,                                       # DynamicInfo Task State
             'dynamic_info_last_error_code': self.registry_binary_blobs.dynamic_info.last_error_code,                             # DynamicInfo Last Error Code returned
             'dynamic_info_last_successful_run_time': self.registry_binary_blobs.dynamic_info.last_successful_run_time,           # DynamicInfo Last Successful run time
+            'dynamic_creation_time_epoch': self.registry_binary_blobs.dynamic_info.creation_time_epoch,                
+		    'dynamic_last_run_time_epoch': self.registry_binary_blobs.dynamic_info.last_run_time_epoch,
+            'dynamic_last_successful_run_time_epoch': self.registry_binary_blobs.dynamic_info.last_successful_run_time_epoch,
             'triggers_count': self.registry_binary_blobs.triggers.triggers_count,
             'triggers_start_boundary': self.registry_binary_blobs.triggers.triggers_count,
             'triggers_end_boundary': self.registry_binary_blobs.triggers.triggers_end_boundary,
+            'ep_30d_ago': days_ago(30).timestamp(),
+            'ep_14d_ago': days_ago(14).timestamp(),
+            'ep_7d_ago': days_ago(7).timestamp(),
+            'ep_3d_ago': days_ago(3).timestamp(),
+            'ep_1d_ago': days_ago(1).timestamp(),
         }
     
     def buffer(self, flat=False):
