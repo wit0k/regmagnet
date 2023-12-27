@@ -5,6 +5,7 @@ __version__ = '0.9'
 import logging
 from msilib.schema import File
 from operator import index
+from re import S
 import struct
 import argparse
 
@@ -27,6 +28,7 @@ from kaitaistruct import KaitaiStream
 from os.path import join, abspath, dirname, isdir
 import yara
 from md.time_class import days_ago
+from md.security_descriptor import security_descriptor
 
 import ctypes
 import os
@@ -224,6 +226,20 @@ class windows_task_registry_blobs(object):
     def __init__(self):
         pass
 
+    def parse_sd(self, key):
+        
+        if isinstance(key, bytes):
+            sk_record = key
+        elif isinstance(key, int):
+            sk_record = key._nkrecord.sk_record()
+        elif isinstance(key, int):
+            sk_record = key.security().descriptor()
+        else:
+            raise Exception('Unsupported Key type. Unable to get Security Descriptor!')
+        
+        sd_obj = security_descriptor(sk_record)
+            
+
     def json(self, flat=True):
         
         return {
@@ -231,7 +247,7 @@ class windows_task_registry_blobs(object):
             'dynamic_info': self.dynamic_info.json(flat=flat) if self.dynamic_info else {},
             'triggers': self.triggers.json(flat=flat) if self.triggers else {},
             # 'user_info': self.user_info,
-            # 'security_descriptor': self.sd,
+            'security_descriptor': self.parse_sd(self.sd),
         }
 
 class windows_task_action_flat(object):
@@ -726,8 +742,8 @@ class windows_task(object):
         if self.Triggers:
             self.registry_binary_blobs.triggers = windows_task_triggers(self.Triggers)
         
-        # I need to add parsing support later
-        self.registry_binary_blobs.sd = self.SD
+        if self.SD:
+            self.registry_binary_blobs.sd = self.registry_binary_blobs.parse_sd(self.SD)
     
     def scan(self):
         
