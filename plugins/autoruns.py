@@ -122,12 +122,16 @@ QUERY_VALUE_LIST = [
     r"Software\Classes\CLSID\*\InprocServer32", # UsrClass or NTUSER -> https://blog.yaxser.io/posts/task-scheduler-com-handler 
     r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\IniFileMapping\system.ini\boot",
     r"Microsoft\Windows NT\CurrentVersion\IniFileMapping\system.ini\boot",
-    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime",
-    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce",
-    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State",
-    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime",
-    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce",
-    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State",
+    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_CURRENT_USER
+    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_CURRENT_USER
+    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_CURRENT_USER
+    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_LOCAL_MACHINE
+    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_LOCAL_MACHINE
+    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_LOCAL_MACHINE
+    r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_USERS\.DEFAULT
+    r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_USERS\.DEFAULT
+    r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_USERS\.DEFAULT
+
 ]
 
 QUERY_KEY_LIST = [
