@@ -11,3 +11,5 @@ psutil
 # yara-python -> might require "sudo apt-get install libssl-dev" on linux
 yara-python
 kaitaistruct
+#pywin32
+winacl

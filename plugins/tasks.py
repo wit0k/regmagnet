@@ -28,7 +28,7 @@ from kaitaistruct import KaitaiStream
 from os.path import join, abspath, dirname, isdir
 import yara
 from md.time_class import days_ago
-from md.security_descriptor import security_descriptor
+from md.security_descriptor import security_descriptor, windows_security_descriptor
 
 import ctypes
 import os
@@ -744,6 +744,9 @@ class windows_task(object):
         
         if self.SD:
             self.registry_binary_blobs.sd = self.registry_binary_blobs.parse_sd(self.SD)
+            self.registry_binary_blobs.sd_new = windows_security_descriptor(self.SD)
+
+            debug = ""
     
     def scan(self):
         

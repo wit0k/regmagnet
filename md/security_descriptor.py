@@ -1,8 +1,9 @@
-
+import io
 import logging
 import bitstring
 import struct
 import re
+from winacl.dtyp.security_descriptor import SECURITY_DESCRIPTOR
 
 logger = logging.getLogger('regmagnet')
 
@@ -21,6 +22,14 @@ https://referencesource.microsoft.com/#mscorlib/system/security/accesscontrol/se
 https://referencesource.microsoft.com/#mscorlib/system/security/accesscontrol/registrysecurity.cs
 
 """
+class windows_security_descriptor(object): # https://github.com/xBlackSwan/winacl/blob/master/winacl/dtyp/security_descriptor.py
+
+    def __init__(self, sd_bytes: bytes):
+
+        self.sd_bytes = io.BytesIO(sd_bytes)
+        self.sd = SECURITY_DESCRIPTOR.from_buffer(self.sd_bytes)
+        self.sddl = self.sd.to_sddl()
+
 class security_descriptor(object):
 
     """ The class exposes data used by following format fields:  key_owner, key_group, key_permissions, key_sddl
@@ -727,7 +736,7 @@ class security_descriptor(object):
     def get_SID(self, buffer_bytes, convert_to_le=True):
 
         sid = security_descriptor.structures.sid()
-        OwnerSID = f''
+        OwnerSID = ''
 
         if len(buffer_bytes) < 8:
             raise ValueError('SID buffer is too short')
@@ -754,9 +763,11 @@ class security_descriptor(object):
                     index = 0
 
         if sid.SubAuthorities:
-            OwnerSID = f'S-{sid.Revision}-{sid.IdentifierAuthority}-' + "-".join(sid.SubAuthorities)
+            # OwnerSID = f'S-{sid.Revision}-{sid.IdentifierAuthority}-' + "-".join(sid.SubAuthorities)
+            OwnerSID = 'S-%s-%s-%s' % (sid.Revision, sid.IdentifierAuthority, '-'.join(sid.SubAuthorities))
         else:
-            OwnerSID = f'S-{sid.Revision}-{sid.IdentifierAuthority}'
+            # OwnerSID = f'S-{sid.Revision}-{sid.IdentifierAuthority}'
+            OwnerSID = 'S-%s-%s' % (sid.Revision, sid.IdentifierAuthority)
 
         sid.SID = OwnerSID
 
