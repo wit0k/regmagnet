@@ -1,13 +1,16 @@
 import logging
+from math import e
 import os.path
 import re
 
 from os.path import getsize
+import struct
 
 from providers.provider import registry_provider
 from md.security_descriptor import security_descriptor
 
 from Registry import Registry
+from struct import unpack
 
 logger = logging.getLogger('regmagnet')
 
@@ -147,29 +150,38 @@ class python_registry(registry_provider):
         key_timestamp = key_obj.timestamp()
         key_subkey_count = len(key_obj.subkeys())
         key_value_count = len(key_obj.values())
-
+        
         key_owner = ''
         key_group = ''
         key_permissions = ''
+        key_sd_bytes = b''
 
+            
         if parse_security_descriptor:
 
             sk_record = key_obj._nkrecord.sk_record()
 
             if sk_record:
-                key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=sk_record)
+                key_sd_bytes, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=sk_record)
+                
+                if key_sd_bytes == b'' or key_sd_bytes is None:
+                    print('Debug -> Empty key_sd_bytes: ', key_path)
 
                 key_item = registry_provider.registry_key(_key_path=key_path, _key_path_unicode=key_path_unicode,
                                                           _key_timestamp=key_timestamp,
                                                           _key_subkey_count=key_subkey_count,
                                                           _key_value_count=key_value_count, _key_owner=key_owner,
-                                                          _key_group=key_group, _key_permissions=key_permissions)
-
+                                                          _key_group=key_group, _key_permissions=key_permissions,
+                                                          _key_obj=key_obj, _key_sd_bytes=key_sd_bytes)
+            else:
+                print('Debug -> Empty SK record: ', key_path)
         else:
 
+            print('Debug -> Skip SD parsing: ', key_path)
+            
             key_item = registry_provider.registry_key(_key_path=key_path, _key_path_unicode=key_path_unicode,
                                                       _key_timestamp=key_timestamp, _key_subkey_count=key_subkey_count,
-                                                      _key_value_count=key_value_count)
+                                                      _key_value_count=key_value_count, _key_obj=key_obj, _key_sd_bytes=key_sd_bytes)
 
         if reg_handler:
             reg_handler.process_fields(registry_obj=key_item, reg_item_obj=reg_item_obj)
@@ -181,19 +193,45 @@ class python_registry(registry_provider):
         key_owner = ''
         key_group = ''
         key_permissions = ''
+        key_sd_bytes = b''
 
         if sk_record:
-            sd_bytes = sk_record._buf[sk_record._offset:sk_record._offset_next_sk]
+            
+            # Determine SD size
+            # - self.read_uint32(16)
+                # def read_uint32(self, pos):
+		        #    b = self.read_binary(pos, 4)  -> # b = buf[16:4]
+		        #    return unpack('<L', b)[0]
+            
+            sd_size = sk_record._buf[sk_record._offset+16:sk_record._offset+16+4]
+            sd_bytes_size = unpack('<L', sd_size)[0]
+            
+            # Get the SD bytes 
+            # - self.read_binary(20, self.get_security_descriptor_size())
+            """
+                def read_binary(self, pos, length = None):
+		                if length is None:
+			                b = self.buf[pos : ]
+			                return b
+
+		                b = self.buf[pos : pos + length]
+            """
+            
+            sd_bytes = sk_record._buf[sk_record._offset+20:sk_record._offset+20+sd_bytes_size]
+            # Sometimes does work ...      
+            # sd_bytes = sk_record._buf[sk_record._offset:sk_record._offset_next_sk]
 
             if sd_bytes:
                 # According to get_security_descriptor() from https://github.com/msuhanov/yarp/blob/bcff19e5e1542e763c3ce2d86568d92b24af8d82/yarp/RegistryRecords.py
                 # - self.read_binary(20, self.get_security_descriptor_size()) ... so it starts from 20
 
-                sd_bytes_len_bytes = sd_bytes[16:16+4]
-                sd_btes_len = int.from_bytes(sd_bytes_len_bytes, byteorder='little', signed=False) # struct.unpack('<L', sd_bytes_len_bytes)[0]
-                sd_bytes = sd_bytes[security_descriptor.HeaderLength:security_descriptor.HeaderLength + sd_btes_len]
-
+                # HeaderLength = 20
+                # sd_bytes_len_bytes = sd_bytes[16:16+4]
+                # sd_btes_len = int.from_bytes(sd_bytes_len_bytes, byteorder='little', signed=False) # struct.unpack('<L', sd_bytes_len_bytes)[0]
+                # sd_bytes = sd_bytes[security_descriptor.HeaderLength:security_descriptor.HeaderLength + sd_btes_len]
+                
                 try:
+                    # For some reason the HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks" has no permission that way...
                     key_security_descriptor = security_descriptor(security_descriptor_bytes=sd_bytes)
                     key_owner = key_security_descriptor.key_owner()
                     key_group = key_security_descriptor.key_group()
@@ -201,7 +239,7 @@ class python_registry(registry_provider):
                 except ValueError as msg:
                     logger.debug(msg)
 
-        return key_owner, key_group, key_permissions
+        return sd_bytes, key_owner, key_group, key_permissions
 
     def enum_root_subkeys(self, key_path, hive, reg_handler=None, key_name_pattern=None) -> list:
 
@@ -321,7 +359,7 @@ class python_registry(registry_provider):
                     _registry_values.append(value_obj)
 
             _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive, _registry_key=_registry_key,
-                                                   _registry_values=_registry_values)
+                                                   _registry_values=_registry_values, _key_obj=key_obj)
 
             #  Extend the list with newly created registry_item
             if _registry_item:
@@ -374,7 +412,7 @@ class python_registry(registry_provider):
 
 
                 _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive,
-                                                             _registry_key=_registry_key, _registry_values=_registry_values)
+                                                             _registry_key=_registry_key, _registry_values=_registry_values, _key_obj=key)
 
                 if _registry_item:
                     _keys.append(_registry_item)
@@ -436,7 +474,7 @@ class python_registry(registry_provider):
 
                     _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive,
                                                                   _registry_key=_registry_key,
-                                                                  _registry_values=_registry_values)
+                                                                  _registry_values=_registry_values, _key_obj=key)
                     if _registry_item:
                         _items.append(_registry_item)
                 else:
@@ -505,7 +543,8 @@ class python_registry(registry_provider):
 
                 _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive,
                                                              _registry_key=_registry_key,
-                                                             _registry_values=[value])
+                                                             _registry_values=[value],
+                                                             _key_obj=key)
                 if _registry_item:
                     _items.append(_registry_item)
 
@@ -537,7 +576,7 @@ class python_registry(registry_provider):
 
 
         _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive, _registry_key=_registry_key,
-                           _registry_values=registry_values, custom_fields=custom_fields)
+                           _registry_values=registry_values, custom_fields=custom_fields, _key_obj=key)
 
         return _registry_item
 

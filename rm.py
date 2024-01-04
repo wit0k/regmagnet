@@ -34,6 +34,7 @@ logger = logging.getLogger('regmagnet')
     - Use the list of registry_item objects to create winreg data and sqlite data (instead of a list of dicts, coming from registry_item.items())
     - Onboard provider: https://github.com/EricZimmerman/Registry/
     - It could make sense to create a plugin for https://github.com/microsoft/AppModelSamples/tree/master, https://www.tmurgent.com/TmBlog/?p=3618, https://github.com/nasbench/Misc-Research/blob/main/Other/UWP-Applications-Persistence.md
+    - Add CSV delimiter to parameters
 """
 
 

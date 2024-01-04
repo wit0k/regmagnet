@@ -232,11 +232,11 @@ class yarp(registry_provider):
         key_timestamp = str(key_obj.last_written_timestamp())
         key_subkey_count = str(key_obj.subkeys_count())
         key_value_count = str(key_obj.values_count())
-        key_dacl = str(key_obj.security().descriptor())
-
+        key_dacl = str(key_obj.security().descriptor())        
         key_owner = ''
         key_group = ''
         key_permissions = ''
+        key_sd_bytes = b''
 
         if parse_security_descriptor:
 
@@ -245,19 +245,20 @@ class yarp(registry_provider):
             # sc = security_descriptor(security_descriptor_bytes=_sec_descriptor)
 
             if sd_bytes:
-                key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=sd_bytes)
+                key_sd_bytes, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=sd_bytes)
 
                 key_item = registry_provider.registry_key(_key_path=key_path, _key_path_unicode=key_path_unicode,
                                                           _key_timestamp=key_timestamp,
                                                           _key_subkey_count=key_subkey_count,
                                                           _key_value_count=key_value_count, _key_owner=key_owner,
-                                                          _key_group=key_group, _key_permissions=key_permissions)
+                                                          _key_group=key_group, _key_permissions=key_permissions,
+                                                          _key_obj=key_obj, _key_sd_bytes=key_sd_bytes)
 
         else:
 
             key_item = registry_provider.registry_key(_key_path=key_path, _key_path_unicode=key_path_unicode,
                                                       _key_timestamp=key_timestamp, _key_subkey_count=key_subkey_count,
-                                                      _key_value_count=key_value_count)
+                                                      _key_value_count=key_value_count, _key_obj=key_obj, _key_sd_bytes=key_sd_bytes)
 
         if reg_handler:
             reg_handler.process_fields(registry_obj=key_item, reg_item_obj=reg_item_obj)
@@ -269,8 +270,10 @@ class yarp(registry_provider):
         key_owner = ''
         key_group = ''
         key_permissions = ''
+        key_sd_bytes = b''
 
         try:
+            key_sd_bytes = sk_record
             key_security_descriptor = security_descriptor(security_descriptor_bytes=sk_record)
             key_owner = key_security_descriptor.key_owner()
             key_group = key_security_descriptor.key_group()
@@ -278,7 +281,7 @@ class yarp(registry_provider):
         except ValueError as msg:
             logger.debug(msg)
 
-        return key_owner, key_group, key_permissions
+        return key_sd_bytes, key_owner, key_group, key_permissions
 
     """ ------------------------------------------------------------------------------------------------------------ """
     """                        ~~~~  Registry Enum Functionality ~~~~                                              """
@@ -414,7 +417,7 @@ class yarp(registry_provider):
                                     loop = False
 
                         _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive,
-                                           _registry_key=_registry_key, _registry_values=_registry_values)
+                                           _registry_key=_registry_key, _registry_values=_registry_values, _key_obj=key)
 
                         if _registry_item:
                             _keys.append(_registry_item)
@@ -482,7 +485,8 @@ class yarp(registry_provider):
 
                 _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive,
                                                              _registry_key=_registry_key,
-                                                             _registry_values=[value])
+                                                             _registry_values=[value],
+                                                             _key_obj=key)
                 if _registry_item:
                     _items.append(_registry_item)
 
@@ -536,7 +540,7 @@ class yarp(registry_provider):
 
                                         _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive,
                                                            _registry_key=_registry_key,
-                                                           _registry_values=_registry_values)
+                                                           _registry_values=_registry_values, _key_obj=key)
 
                                 except StopIteration:
                                     loop = False
@@ -588,7 +592,7 @@ class yarp(registry_provider):
                     _registry_values.append(value_obj)
 
             _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive, _registry_key=_registry_key,
-                                                   _registry_values=_registry_values)
+                                                   _registry_values=_registry_values, _key_obj=key)
 
             #  Extend the list with newly created registry_item
             if _registry_item:
@@ -628,7 +632,7 @@ class yarp(registry_provider):
 
 
         _registry_item.add(_plugin_name=plugin_name, _registry_hive=hive, _registry_key=_registry_key,
-                           _registry_values=registry_values, custom_fields=custom_fields)
+                           _registry_values=registry_values, custom_fields=custom_fields, _key_obj=key)
 
         return _registry_item
 

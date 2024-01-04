@@ -28,7 +28,8 @@ from kaitaistruct import KaitaiStream
 from os.path import join, abspath, dirname, isdir
 import yara
 from md.time_class import days_ago
-from md.security_descriptor import security_descriptor, windows_security_descriptor
+from md.security_descriptor import security_descriptor, windows_security_descriptor, SD_OBJECT_TYPE
+from inspect import isfunction
 
 import ctypes
 import os
@@ -222,24 +223,27 @@ class windows_task_registry_blobs(object):
     triggers = None
     user_info = None
     sd = None
+    sd_key = None
 
     def __init__(self):
         pass
 
-    def parse_sd(self, key):
+    def get_security_descriptor(self, key, obj_type=None):
         
         if isinstance(key, bytes):
             sk_record = key
-        elif isinstance(key, int):
-            sk_record = key._nkrecord.sk_record()
-        elif isinstance(key, int):
-            sk_record = key.security().descriptor()
+        elif getattr(key, 'key_sd_bytes', None):
+            sk_record = key.key_sd_bytes
+        elif getattr(key, 'key_obj', None): # Just in case (unfinished code...)
+            if getattr(key.key_obj, '_nkrecord', None):
+                sk_record = key.key_obj._nkrecord.sk_record()
+            elif isfunction(key.key_obj, 'security'):
+                sk_record = key.key_obj.security().descriptor()
         else:
             raise Exception('Unsupported Key type. Unable to get Security Descriptor!')
         
-        sd_obj = security_descriptor(sk_record)
+        return windows_security_descriptor(sk_record, obj_type)
             
-
     def json(self, flat=True):
         
         return {
@@ -247,7 +251,8 @@ class windows_task_registry_blobs(object):
             'dynamic_info': self.dynamic_info.json(flat=flat) if self.dynamic_info else {},
             'triggers': self.triggers.json(flat=flat) if self.triggers else {},
             # 'user_info': self.user_info,
-            'security_descriptor': self.parse_sd(self.sd),
+            'key_sd': self.sd_key.json(flat=flat),
+            'task_sd': self.sd.json(flat=flat),
         }
 
 class windows_task_action_flat(object):
@@ -680,6 +685,7 @@ class windows_task(object):
     DynamicInfo = None
     blob = None
     detections = None
+    reg_item = None
 
     def variables(self) -> dict:
         
@@ -702,6 +708,14 @@ class windows_task(object):
             'triggers_count': self.registry_binary_blobs.triggers.triggers_count,
             'triggers_start_boundary': self.registry_binary_blobs.triggers.triggers_count,
             'triggers_end_boundary': self.registry_binary_blobs.triggers.triggers_end_boundary,
+            'key_owner': self.registry_binary_blobs.sd_key.owner_name,
+            'key_group': self.registry_binary_blobs.sd_key.group_name,
+            'key_permissions': self.registry_binary_blobs.sd_key.permissions,
+            'key_sddl': self.registry_binary_blobs.sd_key.sddl,
+            'task_sd_owner': self.registry_binary_blobs.sd_key.owner_name,
+            'task_sd_group': self.registry_binary_blobs.sd_key.group_name,
+            'task_sd_permissions': self.registry_binary_blobs.sd_key.permissions,
+            'task_sd_sddl': self.registry_binary_blobs.sd_key.sddl,
             'ep_30d_ago': days_ago(30).timestamp(),
             'ep_14d_ago': days_ago(14).timestamp(),
             'ep_7d_ago': days_ago(7).timestamp(),
@@ -725,11 +739,12 @@ class windows_task(object):
         self.field_names.append(name)
         self.__setattr__(name, value)
 
-    def __init__(self, field_names=None) -> None:
+    def __init__(self, reg_item, field_names=None) -> None:
         
         if field_names is None: self.field_names = []
         self.registry_binary_blobs = windows_task_registry_blobs()
-    
+        self.reg_item = reg_item
+        
     def process(self):
         """ Translate Raw Task Buffers/Values to corresponding objects """
         
@@ -743,8 +758,8 @@ class windows_task(object):
             self.registry_binary_blobs.triggers = windows_task_triggers(self.Triggers)
         
         if self.SD:
-            self.registry_binary_blobs.sd = self.registry_binary_blobs.parse_sd(self.SD)
-            self.registry_binary_blobs.sd_new = windows_security_descriptor(self.SD)
+            self.registry_binary_blobs.sd = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT)
+            self.registry_binary_blobs.sd_key = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY) 
 
             debug = ""
     
@@ -808,7 +823,10 @@ class windows_task(object):
                         scan_variables[key] = 0
                     else:
                         scan_variables[key] = 'None'
-
+                        
+                if isinstance(value, list) or isinstance(value, dict):
+                    scan_variables[key] = str(value)
+                    
             # Compile all available Yara rules with task and action variables (Unique per scan)
             rules = yara.compile(filepaths=rule_paths, externals=scan_variables)
 
@@ -930,7 +948,7 @@ class tasks(plugin):
             key_path=[r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\*"],
             hive=hive,
             plugin_name=self.name,
-            reg_handler=registry_handler
+            reg_handler=registry_handler,
         )
 
         # -----------------------------------------------------------------------------------------------------------.
@@ -961,8 +979,11 @@ class tasks(plugin):
         # Iterate over all merged tasks     
         for reg_item in tasks:
 
+            # Debug
+            # print(reg_item.get_path())
+            
             # Create empty task object
-            task_obj = windows_task()
+            task_obj = windows_task(reg_item=reg_item)
 
             if reg_item.has_values:
             

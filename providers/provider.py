@@ -7,6 +7,7 @@ import re
 import string
 import sys
 import math
+from typing import Self
 
 from md.errors import *
 
@@ -44,27 +45,27 @@ class registry_provider(object):
             key_timestamp = "key_timestamp"
             key_subkey_count = "key_subkey_count"
             key_value_count = "key_value_count"
-
             key_owner = "key_owner"
             key_group = "key_group"
             key_permissions = "key_permissions"
             key_sddl = "key_sddl"
+            key_sd_bytes = "key_sd_bytes"
 
-        def __init__(self, _key_path, _key_path_unicode, _key_timestamp, _key_subkey_count, _key_value_count,
-                         _key_owner='', _key_group='', _key_permissions='', _key_sddl=''):
+        def __init__(self, _key_path, _key_path_unicode, _key_timestamp, _key_subkey_count, _key_value_count, _key_obj,
+                         _key_owner='', _key_group='', _key_permissions='', _key_sddl='', _key_sd_bytes=b''):
 
             self.key_path = _key_path
             self.key_path_unicode = _key_path_unicode
             self.key_timestamp = _key_timestamp
             self.key_subkey_count = _key_subkey_count
             self.key_value_count = _key_value_count
-
+            self.key_obj = _key_obj
             self.key_owner = _key_owner
             self.key_group = _key_group
             self.key_permissions = _key_permissions
             self.key_sddl = _key_sddl
-
-
+            self.key_sd_bytes = _key_sd_bytes
+            
         def dict(self):
 
             dict_reg_key = {}
@@ -204,6 +205,7 @@ class registry_provider(object):
 
         def __init__(self):
 
+            self.key_obj = None
             self.plugin_name = None
             self.custom_field = None
             self.hive = None
@@ -276,7 +278,7 @@ class registry_provider(object):
 
             return new_reg_values
         
-        def add(self, _plugin_name, _registry_hive, _registry_key, _registry_values=None, **custom_fields):
+        def add(self, _plugin_name, _registry_hive, _registry_key, _key_obj, _registry_values=None, **custom_fields):
 
             if _registry_values is None: _registry_values = []
 
@@ -286,7 +288,8 @@ class registry_provider(object):
             self.key = _registry_key
             self.values = _registry_values
             self.values_hash = ''
-
+            self.key_obj = _key_obj
+            
             #  Add custom fields
             if custom_fields:
                 for field_name, field_data in custom_fields.items():
@@ -453,7 +456,6 @@ class registry_provider(object):
             if reg_item is None : reg_item = self
             
             return reg_item.key.key_path
-
 
     class registry_reg_handler(object):
 

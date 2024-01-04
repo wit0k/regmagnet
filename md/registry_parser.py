@@ -1138,7 +1138,7 @@ class registry_parser(object):
         return reg_exporter.convert2winreg(items=items, insert_registry_header=insert_registry_header, save_output=save_output,
                                            output_path=output_path)
 
-    def export_to_csv(self, items, output_path, _format_fields=None, delimiter=','):
+    def export_to_csv(self, items, output_path, _format_fields=None, delimiter=';'):
 
         logger.debug('Saving registry items in "CSV" format')
         write_mode = 'a'

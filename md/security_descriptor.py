@@ -1,9 +1,12 @@
 import io
 import logging
+from operator import iand
 import bitstring
 import struct
 import re
+import enum
 from winacl.dtyp.security_descriptor import SECURITY_DESCRIPTOR
+from winacl.dtyp.ace import FILE_ACCESS_MASK, REGISTRY_ACCESS_MASK
 
 logger = logging.getLogger('regmagnet')
 
@@ -22,14 +25,136 @@ https://referencesource.microsoft.com/#mscorlib/system/security/accesscontrol/se
 https://referencesource.microsoft.com/#mscorlib/system/security/accesscontrol/registrysecurity.cs
 
 """
+
+# New code:
+# https://github.com/skelsec/winacl/blob/main/winacl/functions/constants.py#L5
+class SD_OBJECT_TYPE(enum.Enum):
+	SE_UNKNOWN_OBJECT_TYPE = 0 #Unknown object type.
+	SE_FILE_OBJECT = 1 #Indicates a file or directory.
+	SE_SERVICE = 2 #Indicates a Windows service
+	SE_PRINTER = 3 #Indicates a printer.
+	SE_REGISTRY_KEY = 4 #Indicates a registry key.
+	SE_LMSHARE = 5 #Indicates a network share.
+	SE_KERNEL_OBJECT = 6 #Indicates a local 
+	SE_WINDOW_OBJECT = 7 #Indicates a window station or desktop object on the local computer
+	SE_DS_OBJECT = 8 #Indicates a directory service object or a property set or property of a directory service object. 
+	SE_DS_OBJECT_ALL = 9 #Indicates a directory service object and all of its property sets and properties.
+	SE_PROVIDER_DEFINED_OBJECT = 10 #Indicates a provider-defined object.
+	SE_WMIGUID_OBJECT = 11 #Indicates a WMI object.
+	SE_REGISTRY_WOW64_32KEY = 12 #Indicates an object for a registry entry under WOW64.
+	SE_REGISTRY_WOW64_64KEY = 13 #Indicates an object for a registry entry under WOW64.
+        
+
 class windows_security_descriptor(object): # https://github.com/xBlackSwan/winacl/blob/master/winacl/dtyp/security_descriptor.py
 
-    def __init__(self, sd_bytes: bytes):
+    obj_type = None
+    
+    def __init__(self, sd_bytes: bytes, obj_type=None):
+                
+        if obj_type is None:
+            self.obj_type=SD_OBJECT_TYPE.SE_REGISTRY_KEY.value
+        else:
+            self.obj_type=obj_type.value
 
         self.sd_bytes = io.BytesIO(sd_bytes)
         self.sd = SECURITY_DESCRIPTOR.from_buffer(self.sd_bytes)
         self.sddl = self.sd.to_sddl()
+        self.owner_name = self.get_owner_name()
+        self.owner_sid = self.get_owner_sid()
+        self.group_name = self.get_group_name()
+        self.group_sid = self.get_group_sid()
+        self.permissions = []
+        
+        for ace in self.sd.Dacl.aces:
+            ace_permissions = self.get_ace_mask_permissions(ace=ace, sd_obj_type=self.obj_type)
+            self.permissions.append(ace_permissions)
+    
+    
+    def json(self, flat=True):
+        
+        sd_data = {}
+        
+        if flat == False:
+            sd_data.update({
+                'owner_name': self.owner_name,
+                'group_name': self.group_name,
+                'group_name': self.group_name,
+                'group_sid': self.group_sid,
+                'sddl': self.sddl,
+                '_nested_keys_': ['permissions'],
+                'permissions': []
+            })
+        
+        ace_index = 1
+        for ace in self.permissions:
+            
+            if flat == True: 
+                for key, value in ace.items():
+                    sd_data['ace.%s.%s' % (ace_index,key)] = value
+            else:
+                json_data = {}
+                for key, value in ace.items():
+                    json_data.update({'ace_%s' % key: value})
+                
+                sd_data['permissions'].append(json_data)
+            ace_index += 1
+        
+        return sd_data
 
+    def get_owner_sid(self):
+        return (self.sd.Owner.to_sddl())
+
+    def get_owner_name(self):
+        return (self.sd.Owner.wellknown_sid_lookup(self.sd.Owner.to_sddl()))
+    
+    def get_group_sid(self):
+        return (self.sd.Group.to_sddl())
+
+    def get_group_name(self) -> str:
+        return (self.sd.Group.wellknown_sid_lookup(self.sd.Group.to_sddl()))
+        
+    def get_ace_mask_permissions(self, ace, sd_obj_type) -> dict:
+        
+        ace_mask = ace.Mask
+        ace_type = self.get_ace_type_str(ace.AceType)
+        user = self.sd.Owner.wellknown_sid_lookup(ace.Sid.to_sddl())
+        
+        access_rights = {}
+
+        if sd_obj_type == SD_OBJECT_TYPE.SE_FILE_OBJECT.value:
+            access_rights = {
+                'user_sid': ace.Sid.to_sddl(),
+                'user_name': user,
+                'ace_type': ace_type,
+                'permissions':'([%s] - [%s] - %s)' % (user, ace_type, FILE_ACCESS_MASK(ace_mask).name),
+                'sd_type': 'SE_FILE_OBJECT',
+            }
+        elif sd_obj_type == SD_OBJECT_TYPE.SE_REGISTRY_KEY.value:
+            access_rights = {
+                'user_sid': ace.Sid.to_sddl(),
+                'user_name': user,
+                'ace_type': ace_type,
+                'permissions': '([%s] - [%s] - %s)' % (user, ace_type, REGISTRY_ACCESS_MASK(ace_mask).name),
+                'sd_type': 'SE_REGISTRY_KEY',
+            }        
+            
+        return access_rights
+    
+    def get_ace_type_str(self, ace_type):
+        
+        type_str = '%s' % ace_type
+        
+        if len(type_str) > 1:
+            type_str = type_str.replace('ACEType.', '')
+            type_str = type_str.replace('_ACE_TYPE', '')
+        else:
+            type_str = 'ACE_Unknown'
+        
+        return type_str
+    
+
+
+# Old code:
 class security_descriptor(object):
 
     """ The class exposes data used by following format fields:  key_owner, key_group, key_permissions, key_sddl
@@ -91,6 +216,10 @@ class security_descriptor(object):
     AceFlags = None # AceFlags (1 byte): An unsigned 8-bit integer that specifies a set of ACE type-specific control flags. This field can be a combination of the following values.
     AceSize = None  # (2 bytes): An unsigned 16-bit integer that specifies the size, in bytes, of the ACE. The AceSize field can be greater than the sum of the individual fields, but MUST be a multiple of 4 to ensure alignment on a DWORD boundary. In cases where the AceSize field encompasses additional data for the callback ACEs types, that data is implementation-specific. Otherwise, this additional data is not interpreted and MUST be ignored.
 
+    Other references:
+    - https://github.com/An0ther0ne/SSDL_Utils/blob/master/readsddl.py
+    - https://github.com/qtc-de/wconv/blob/master/wconv/sddl.py
+    
     """
     def __repr__(self):
         resp = '%s | %s | %s | %s' % (self.Control, self.Owner, self.Group, self.Dacl)
@@ -276,6 +405,7 @@ class security_descriptor(object):
 
         # Ref: https://docs.microsoft.com/en-us/windows/desktop/sysinfo/registry-key-security-and-access-rights
         ACCESS_MASK = {
+            """
             'GENERIC_READ': 0x80000000,  # When used in an Access Request operation: When read access to an object is requested, this bit is translated to a combination of bits. These are most often set in the lower 16 bits of the ACCESS_MASK. (Individual protocol specifications MAY specify a different configuration.) The bits that are set are implementation dependent. During this translation, the GR bit is cleared. The resulting ACCESS_MASK bits are the actual permissions that are checked against the ACE structures in the security descriptor that attached to the object. When used to set the Security Descriptor on an object: When the GR bit is set in an ACE that is to be attached to an object, it is translated into a combination of bits, which are usually set in the lower 16 bits of the ACCESS_MASK. (Individual protocol specifications MAY specify a different configuration.) The bits that are set are implementation dependent. During this translation, the GR bit is cleared. The resulting ACCESS_MASK bits are the actual permissions that are granted by this ACE.
             'GENERIC_WRITE': 0x40000000,  # When used in an Access Request operation: When write access to an object is requested, this bit is translated to a combination of bits, which are usually set in the lower 16 bits of the ACCESS_MASK. (Individual protocol specifications MAY specify a different configuration.) The bits that are set are implementation dependent. During this translation, the GW bit is cleared. The resulting ACCESS_MASK bits are the actual permissions that are checked against the ACE structures in the security descriptor that attached to the object. When used to set the Security Descriptor on an object: When the GW bit is set in an ACE that is to be attached to an object, it is translated into a combination of bits, which are usually set in the lower 16 bits of the ACCESS_MASK. (Individual protocol specifications MAY specify a different configuration.) The bits that are set are implementation dependent. During this translation, the GW bit is cleared. The resulting ACCESS_MASK bits are the actual permissions that are granted by this ACE.
             'GENERIC_EXECUTE': 0x20000000,  # When used in an Access Request operation: When execute access to an object is requested, this bit is translated to a combination of bits, which are usually set in the lower 16 bits of the ACCESS_MASK. (Individual protocol specifications MAY specify a different configuration.) The bits that are set are implementation dependent. During this translation, the GX bit is cleared. The resulting ACCESS_MASK bits are the actual permissions that are checked against the ACE structures in the security descriptor that attached to the object. When used to set the Security Descriptor on an object: When the GX bit is set in an ACE that is to be attached to an object, it is translated into a combination of bits, which are usually set in the lower 16 bits of the ACCESS_MASK. (Individual protocol specifications MAY specify a different configuration.) The bits that are set are implementation dependent. During this translation, the GX bit is cleared. The resulting ACCESS_MASK bits are the actual permissions that are granted by this ACE.
@@ -287,7 +417,8 @@ class security_descriptor(object):
             'WRITE_DACL': 0x00040000,  # Specifies access to change the discretionary access control list of the security descriptor of an object.
             'READ_CONTROL': 0x00020000,  # Specifies access to read the security descriptor of an object.
             'DELETE': 0x10000,  # Specifies access to delete an object.
-            'KEY_ALL_ACCESS': 0x000F003F,  #  'FullControl' -> Combines the STANDARD_RIGHTS_REQUIRED, KEY_QUERY_VALUE, KEY_SET_VALUE, KEY_CREATE_SUB_KEY, KEY_ENUMERATE_SUB_KEYS, KEY_NOTIFY, and KEY_CREATE_LINK 'access rights.
+            """
+            'KEY_ALL_ACCESS': 0x000F003F,  # 'FullControl' -> Combines the STANDARD_RIGHTS_REQUIRED, KEY_QUERY_VALUE, KEY_SET_VALUE, KEY_CREATE_SUB_KEY, KEY_ENUMERATE_SUB_KEYS, KEY_NOTIFY, and KEY_CREATE_LINK 'access rights.
             'KEY_CREATE_LINK': 0x00000020,  # Reserved for system use.
             'KEY_CREATE_SUB_KEY': 0x00000004,  # Required to create a subkey of a registry key.
             'KEY_ENUMERATE_SUB_KEYS': 0x00000008,  # Required to enumerate the subkeys of a registry key.
