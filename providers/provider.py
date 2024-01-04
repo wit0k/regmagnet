@@ -448,8 +448,14 @@ class registry_provider(object):
             for reg_value in reg_item.values:
                 if reg_value.value_name.lower() == value_name.lower():
                     return reg_value.value_content
+        
+        def set_value(self, value_name, value_content, reg_item=None):
+
+            if reg_item is None : reg_item = self
             
-            return default
+            for reg_value in reg_item.values:
+                if reg_value.value_name.lower() == value_name.lower():
+                    reg_value.value_content = value_content
     
         def get_path(self, reg_item=None, default=None):
             

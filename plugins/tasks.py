@@ -1057,7 +1057,14 @@ class tasks(plugin):
                 #    logger.error('DEBUG: %s' % reg_item.get_path())
                 #    logger.error(task_obj.buffer())
                 #    # exit(0)
-                                
+                
+                # Escape specific values (CSV fix)
+                values_to_escape = ['SecurityDescriptor']
+                for _val_te in values_to_escape:
+                    _current_content = reg_item.get_value(_val_te)
+                    if _current_content:
+                        reg_item.set_value(_val_te, '"%s"' % _current_content)
+                
                 # Add item
                 _items.append(reg_item)
 
