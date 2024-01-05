@@ -89,9 +89,12 @@ class buffer:
             
             elif isinstance(value, bytes):
                 return value
+            
+            elif isinstance(value, float):
+                return ('%s' % str(value)).encode()
 
             else:
-                value = 'Unsupported'.encode()
+                value = b'Unsupported value type [%s] -> "%s"' % (type(value), value)
         
         return value
 
@@ -218,12 +221,12 @@ class helpers(object):
 
 class windows_task_registry_blobs(object):
 
-    actions = None
-    dynamic_info = None
-    triggers = None
-    user_info = None
-    sd = None
-    sd_key = None
+    Actions = None
+    Dynamic_Info = None
+    Triggers = None
+    User_Info = None
+    SD = None
+    SD_Key = None
 
     def __init__(self):
         pass
@@ -247,12 +250,12 @@ class windows_task_registry_blobs(object):
     def json(self, flat=True):
         
         return {
-            'actions': self.actions.json(flat=flat) if self.actions else {},
-            'dynamic_info': self.dynamic_info.json(flat=flat) if self.dynamic_info else {},
-            'triggers': self.triggers.json(flat=flat) if self.triggers else {},
+            'actions': self.Actions.json(flat=flat) if self.Actions else {},
+            'dynamic_info': self.Dynamic_Info.json(flat=flat) if self.Dynamic_Info else {},
+            'triggers': self.Triggers.json(flat=flat) if self.Triggers else {},
             # 'user_info': self.user_info,
-            'key_sd': self.sd_key.json(flat=flat),
-            'task_sd': self.sd.json(flat=flat),
+            'key_sd': self.SD_Key.json(flat=flat),
+            'task_sd': self.SD.json(flat=flat),
         }
 
 class windows_task_action_flat(object):
@@ -687,35 +690,45 @@ class windows_task(object):
     detections = None
     reg_item = None
 
+    def time_variables(self) -> dict:
+        
+        return {
+            'ep_30d_ago': days_ago(30).timestamp(),
+            'ep_14d_ago': days_ago(14).timestamp(),
+            'ep_7d_ago': days_ago(7).timestamp(),
+            'ep_3d_ago': days_ago(3).timestamp(),
+            'ep_1d_ago': days_ago(1).timestamp(),
+        }
+        
     def variables(self) -> dict:
         
         return {
-            'actions_count': self.registry_binary_blobs.actions.count,                                                           # Count of Actions 
+            'actions_count': self.registry_binary_blobs.Actions.count,                                                           # Count of Actions 
             'actions_size': len(self.Actions),                                                                                   # Total size of Actions buffer (in bytes)
-            'actions_version': self.registry_binary_blobs.actions.version,                                                       # Actions Magic
-            'actions_context': self.registry_binary_blobs.actions.context,                                                       # User context to execute the task/actions
-            'actions_biggest_size': max([action.size for action in self.registry_binary_blobs.actions.actions]) ,                # The size of a biggest action
-            'actions_smallest_size': min([action.size for action in self.registry_binary_blobs.actions.actions]),                # The size of a smallest action
-            'dynamic_info_magic': self.registry_binary_blobs.dynamic_info.magic,                                                 # DynamicInfo Magic
-            'dynamic_info_creation_time': self.registry_binary_blobs.dynamic_info.creation_time,                                 # DynamicInfo Task creation time
-            'dynamic_info_last_run_time': self.registry_binary_blobs.dynamic_info.last_run_time,                                 # DynamicInfo Task Last Run time
-            'dynamic_info_task_state': self.registry_binary_blobs.dynamic_info.task_state,                                       # DynamicInfo Task State
-            'dynamic_info_last_error_code': self.registry_binary_blobs.dynamic_info.last_error_code,                             # DynamicInfo Last Error Code returned
-            'dynamic_info_last_successful_run_time': self.registry_binary_blobs.dynamic_info.last_successful_run_time,           # DynamicInfo Last Successful run time
-            'dynamic_creation_time_epoch': self.registry_binary_blobs.dynamic_info.creation_time_epoch,                
-		    'dynamic_last_run_time_epoch': self.registry_binary_blobs.dynamic_info.last_run_time_epoch,
-            'dynamic_last_successful_run_time_epoch': self.registry_binary_blobs.dynamic_info.last_successful_run_time_epoch,
-            'triggers_count': self.registry_binary_blobs.triggers.triggers_count,
-            'triggers_start_boundary': self.registry_binary_blobs.triggers.triggers_count,
-            'triggers_end_boundary': self.registry_binary_blobs.triggers.triggers_end_boundary,
-            'key_owner': self.registry_binary_blobs.sd_key.owner_name,
-            'key_group': self.registry_binary_blobs.sd_key.group_name,
-            'key_permissions': self.registry_binary_blobs.sd_key.permissions,
-            'key_sddl': self.registry_binary_blobs.sd_key.sddl,
-            'task_sd_owner': self.registry_binary_blobs.sd_key.owner_name,
-            'task_sd_group': self.registry_binary_blobs.sd_key.group_name,
-            'task_sd_permissions': self.registry_binary_blobs.sd_key.permissions,
-            'task_sd_sddl': self.registry_binary_blobs.sd_key.sddl,
+            'actions_version': self.registry_binary_blobs.Actions.version,                                                       # Actions Magic
+            'actions_context': self.registry_binary_blobs.Actions.context,                                                       # User context to execute the task/actions
+            'actions_biggest_size': max([action.size for action in self.registry_binary_blobs.Actions.actions]) ,                # The size of a biggest action
+            'actions_smallest_size': min([action.size for action in self.registry_binary_blobs.Actions.actions]),                # The size of a smallest action
+            'dynamic_info_magic': self.registry_binary_blobs.Dynamic_Info.magic,                                                 # DynamicInfo Magic
+            'dynamic_info_creation_time': self.registry_binary_blobs.Dynamic_Info.creation_time,                                 # DynamicInfo Task creation time
+            'dynamic_info_last_run_time': self.registry_binary_blobs.Dynamic_Info.last_run_time,                                 # DynamicInfo Task Last Run time
+            'dynamic_info_task_state': self.registry_binary_blobs.Dynamic_Info.task_state,                                       # DynamicInfo Task State
+            'dynamic_info_last_error_code': self.registry_binary_blobs.Dynamic_Info.last_error_code,                             # DynamicInfo Last Error Code returned
+            'dynamic_info_last_successful_run_time': self.registry_binary_blobs.Dynamic_Info.last_successful_run_time,           # DynamicInfo Last Successful run time
+            'dynamic_creation_time_epoch': self.registry_binary_blobs.Dynamic_Info.creation_time_epoch,                
+		    'dynamic_last_run_time_epoch': self.registry_binary_blobs.Dynamic_Info.last_run_time_epoch,
+            'dynamic_last_successful_run_time_epoch': self.registry_binary_blobs.Dynamic_Info.last_successful_run_time_epoch,
+            'triggers_count': self.registry_binary_blobs.Triggers.triggers_count,
+            'triggers_start_boundary': self.registry_binary_blobs.Triggers.triggers_count,
+            'triggers_end_boundary': self.registry_binary_blobs.Triggers.triggers_end_boundary,
+            'key_owner': self.registry_binary_blobs.SD_Key.owner_name,
+            'key_group': self.registry_binary_blobs.SD_Key.group_name,
+            'key_permissions': self.registry_binary_blobs.SD_Key.permissions,
+            'key_sddl': self.registry_binary_blobs.SD_Key.sddl,
+            'task_sd_owner': self.registry_binary_blobs.SD_Key.owner_name,
+            'task_sd_group': self.registry_binary_blobs.SD_Key.group_name,
+            'task_sd_permissions': self.registry_binary_blobs.SD_Key.permissions,
+            'task_sd_sddl': self.registry_binary_blobs.SD_Key.sddl,
             'ep_30d_ago': days_ago(30).timestamp(),
             'ep_14d_ago': days_ago(14).timestamp(),
             'ep_7d_ago': days_ago(7).timestamp(),
@@ -733,7 +746,7 @@ class windows_task(object):
         return ret
 
     def __repr__(self) -> str:
-        return 'Task: %s -> [Author: %s] -> Actions Count: %s' % (self.Path, self.Author, self.registry_binary_blobs.actions.count)
+        return 'Task: %s -> [Author: %s] -> Actions Count: %s' % (self.Path, self.Author, self.registry_binary_blobs.Actions.count)
     
     def add_field(self, name, value):
         self.field_names.append(name)
@@ -749,17 +762,17 @@ class windows_task(object):
         """ Translate Raw Task Buffers/Values to corresponding objects """
         
         if self.Actions:
-            self.registry_binary_blobs.actions = windows_task_actions(self.Actions)
+            self.registry_binary_blobs.Actions = windows_task_actions(self.Actions)
 
         if self.DynamicInfo:
-            self.registry_binary_blobs.dynamic_info = windows_task_dynamic_info(self.DynamicInfo)
+            self.registry_binary_blobs.Dynamic_Info = windows_task_dynamic_info(self.DynamicInfo)
         
         if self.Triggers:
-            self.registry_binary_blobs.triggers = windows_task_triggers(self.Triggers)
+            self.registry_binary_blobs.Triggers = windows_task_triggers(self.Triggers)
         
         if self.SD:
-            self.registry_binary_blobs.sd = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT)
-            self.registry_binary_blobs.sd_key = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY) 
+            self.registry_binary_blobs.SD = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT)
+            self.registry_binary_blobs.SD_Key = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY) 
 
             debug = ""
     
@@ -804,9 +817,12 @@ class windows_task(object):
 
         # Variable names which would be send to Yara engine
         task_variables = self.variables()
+        
+        # Update variables with time variables
+        task_variables.update(self.time_variables()) 
 
         # Scan actions separately
-        for action in self.registry_binary_blobs.actions.actions:    
+        for action in self.registry_binary_blobs.Actions.actions:    
             scan_variables = None
 
             # Pull action specific variables 
@@ -996,7 +1012,7 @@ class tasks(plugin):
 
                 index = 0
                 # Enrich data
-                for _action in task_obj.registry_binary_blobs.actions.actions:
+                for _action in task_obj.registry_binary_blobs.Actions.actions:
                     
                     index += 1
                     #_action_prefix = 'Action.%s' % index
@@ -1042,7 +1058,7 @@ class tasks(plugin):
                 reg_item.add_values(task_obj.variables())
                     
                 # Saves parsed triggers as new values
-                reg_item.add_values(task_obj.registry_binary_blobs.triggers.json(flat=True))
+                reg_item.add_values(task_obj.registry_binary_blobs.Triggers.json(flat=True))
                     
                 # Trigger a Yara scan on a Task
                 if self.parsed_args.signature_scan_enabled:
@@ -1053,7 +1069,7 @@ class tasks(plugin):
                 setattr(reg_item, 'tags', '%s' % '\n'.join(task_obj.detections) if task_obj.detections else 'None')
 
                 # Debug
-                #if '{419C821C-CF0E-423C-8033-206B1AE4EA3B}' in reg_item.get_path():
+                # if '{419C821C-CF0E-423C-8033-206B1AE4EA3B}' in reg_item.get_path():
                 #    logger.error('DEBUG: %s' % reg_item.get_path())
                 #    logger.error(task_obj.buffer())
                 #    # exit(0)
@@ -1070,7 +1086,7 @@ class tasks(plugin):
 
             else:
                 # Case: Empty Task
-                # print(task_obj)
+                print('Error: Suspicious Empty Task: %s' % reg_item.get_path())
                 pass
         
         if args:

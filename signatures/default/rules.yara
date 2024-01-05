@@ -83,3 +83,15 @@ rule Test_Rule_1 {
     condition:
         triggers_count > 2 and $trigger_start_boundary
 }
+
+rule Key_Permissions_Abuse {
+    meta:
+        author = "wit0k"
+        date = "2024-01-05"
+        description = "Triggers when a task key has abused permissions"
+        reference = "..."
+        mitre_tid = "['None']"
+
+    condition:
+        key_permissions contains "S-1-5-21-"
+}
