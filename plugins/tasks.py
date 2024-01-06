@@ -145,7 +145,10 @@ class buffer:
         return _buffer
 
 class helpers(object):
-    
+
+    def ret_or_default(value, value_type):
+        pass
+
     def from_filetime(FILETIME_BUFFER, format='%Y-%m-%d %H:%M:%S.%f') -> str:
         # https://gist.github.com/Mostafa-Hamdy-Elgiar/9714475f1b3bc224ea063af81566d873
         EPOCH_AS_FILETIME = 116444736000000000  # January 1, 1970 as MS file time
@@ -450,7 +453,8 @@ class windows_task_actions(object):
                 index += 1
                 
             self.count = len(self.actions)
-
+        else:
+            self.actions = []
     def dynamic_parse(input_data):
         """ Old code - Do not use """
 
@@ -578,7 +582,10 @@ class windows_task_dynamic_info(object):
 class windows_task_triggers(object):
     
     obj = None
-    
+    triggers_count = None
+    triggers_start_boundary = None
+    triggers_end_boundary = None
+
     def json(self, flat=True):
         
         triggers_data = {}
@@ -699,7 +706,6 @@ class windows_task(object):
             'ep_3d_ago': days_ago(3).timestamp(),
             'ep_1d_ago': days_ago(1).timestamp(),
         }
-        
     def variables(self) -> dict:
         
         return {
@@ -721,14 +727,14 @@ class windows_task(object):
             'triggers_count': self.registry_binary_blobs.Triggers.triggers_count,
             'triggers_start_boundary': self.registry_binary_blobs.Triggers.triggers_count,
             'triggers_end_boundary': self.registry_binary_blobs.Triggers.triggers_end_boundary,
-            'key_owner': self.registry_binary_blobs.SD_Key.owner_name,
-            'key_group': self.registry_binary_blobs.SD_Key.group_name,
-            'key_permissions': self.registry_binary_blobs.SD_Key.permissions,
-            'key_sddl': self.registry_binary_blobs.SD_Key.sddl,
-            'task_sd_owner': self.registry_binary_blobs.SD_Key.owner_name,
-            'task_sd_group': self.registry_binary_blobs.SD_Key.group_name,
-            'task_sd_permissions': self.registry_binary_blobs.SD_Key.permissions,
-            'task_sd_sddl': self.registry_binary_blobs.SD_Key.sddl,
+            'key_owner': self.registry_binary_blobs.SD.owner_name if self.registry_binary_blobs.SD else None,
+            'key_group': self.registry_binary_blobs.SD.group_name if self.registry_binary_blobs.SD else None,
+            'key_permissions': self.registry_binary_blobs.SD.permissions if self.registry_binary_blobs.SD else None,
+            'key_sddl': self.registry_binary_blobs.SD.sddl if self.registry_binary_blobs.SD else None,
+            'task_sd_owner': self.registry_binary_blobs.SD_Key.owner_name if self.registry_binary_blobs.SD_Key else None,
+            'task_sd_group': self.registry_binary_blobs.SD_Key.group_name if self.registry_binary_blobs.SD_Key else None,
+            'task_sd_permissions': self.registry_binary_blobs.SD_Key.permissions if self.registry_binary_blobs.SD_Key else None,
+            'task_sd_sddl': self.registry_binary_blobs.SD_Key.sddl if self.registry_binary_blobs.SD_Key else None,
             'ep_30d_ago': days_ago(30).timestamp(),
             'ep_14d_ago': days_ago(14).timestamp(),
             'ep_7d_ago': days_ago(7).timestamp(),
