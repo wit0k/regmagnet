@@ -234,7 +234,7 @@ class windows_task_registry_blobs(object):
     def __init__(self):
         pass
 
-    def get_security_descriptor(self, key, obj_type=None):
+    def get_security_descriptor(self, key, obj_type=None, return_bytes=False):
         
         if isinstance(key, bytes):
             sk_record = key
@@ -247,8 +247,11 @@ class windows_task_registry_blobs(object):
                 sk_record = key.key_obj.security().descriptor()
         else:
             raise Exception('Unsupported Key type. Unable to get Security Descriptor!')
-        
-        return windows_security_descriptor(sk_record, obj_type)
+
+        if return_bytes:
+            return  sk_record
+        else:
+            return windows_security_descriptor(sk_record, obj_type)
             
     def json(self, flat=True):
         
@@ -991,6 +994,10 @@ class tasks(plugin):
                         # for reg_value in linked_reg_item.values:
                         # Saves values from Tree\%task_path% to Tasks\%task_guid%
                         reg_item.add_values(linked_reg_item.values)
+
+                    # Add key permissions as a value
+                    reg_item.add_values({'key_tree_sd_bytes': windows_task_registry_blobs.get_security_descriptor(None, key=linked_reg_item.key, return_bytes=True)})
+
         # -----------------------------------------------------------------------------------------------------------.
         # - At this stage the reg_item contains values related to given task from Tree and Tasks node
 
