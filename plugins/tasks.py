@@ -228,8 +228,9 @@ class windows_task_registry_blobs(object):
     Dynamic_Info = None
     Triggers = None
     User_Info = None
-    SD = None
-    SD_Key = None
+    Task_Tree_SD = None
+    Key_Tasks_SD = None
+    Key_Tree_SD = None
 
     def __init__(self):
         pass
@@ -260,8 +261,8 @@ class windows_task_registry_blobs(object):
             'dynamic_info': self.Dynamic_Info.json(flat=flat) if self.Dynamic_Info else {},
             'triggers': self.Triggers.json(flat=flat) if self.Triggers else {},
             # 'user_info': self.user_info,
-            'key_sd': self.SD_Key.json(flat=flat),
-            'task_sd': self.SD.json(flat=flat),
+            'key_sd': self.Key_Tasks_SD.json(flat=flat),
+            'task_sd': self.Task_Tree_SD.json(flat=flat),
         }
 
 class windows_task_action_flat(object):
@@ -699,6 +700,7 @@ class windows_task(object):
     blob = None
     detections = None
     reg_item = None
+    Key_Tree_SD_Bytes = None
 
     def time_variables(self) -> dict:
         
@@ -730,19 +732,14 @@ class windows_task(object):
             'triggers_count': self.registry_binary_blobs.Triggers.triggers_count,
             'triggers_start_boundary': self.registry_binary_blobs.Triggers.triggers_count,
             'triggers_end_boundary': self.registry_binary_blobs.Triggers.triggers_end_boundary,
-            'key_owner': self.registry_binary_blobs.SD.owner_name if self.registry_binary_blobs.SD else None,
-            'key_group': self.registry_binary_blobs.SD.group_name if self.registry_binary_blobs.SD else None,
-            'key_permissions': self.registry_binary_blobs.SD.permissions if self.registry_binary_blobs.SD else None,
-            'key_sddl': self.registry_binary_blobs.SD.sddl if self.registry_binary_blobs.SD else None,
-            'task_sd_owner': self.registry_binary_blobs.SD_Key.owner_name if self.registry_binary_blobs.SD_Key else None,
-            'task_sd_group': self.registry_binary_blobs.SD_Key.group_name if self.registry_binary_blobs.SD_Key else None,
-            'task_sd_permissions': self.registry_binary_blobs.SD_Key.permissions if self.registry_binary_blobs.SD_Key else None,
-            'task_sd_sddl': self.registry_binary_blobs.SD_Key.sddl if self.registry_binary_blobs.SD_Key else None,
-            'ep_30d_ago': days_ago(30).timestamp(),
-            'ep_14d_ago': days_ago(14).timestamp(),
-            'ep_7d_ago': days_ago(7).timestamp(),
-            'ep_3d_ago': days_ago(3).timestamp(),
-            'ep_1d_ago': days_ago(1).timestamp(),
+            'key_owner': self.registry_binary_blobs.Task_Tree_SD.owner_name if self.registry_binary_blobs.Task_Tree_SD else None,
+            'key_group': self.registry_binary_blobs.Task_Tree_SD.group_name if self.registry_binary_blobs.Task_Tree_SD else None,
+            'key_permissions': self.registry_binary_blobs.Task_Tree_SD.permissions if self.registry_binary_blobs.Task_Tree_SD else None,
+            'key_sddl': self.registry_binary_blobs.Task_Tree_SD.sddl if self.registry_binary_blobs.Task_Tree_SD else None,
+            'task_sd_owner': self.registry_binary_blobs.Key_Tasks_SD.owner_name if self.registry_binary_blobs.Key_Tasks_SD else None,
+            'task_sd_group': self.registry_binary_blobs.Key_Tasks_SD.group_name if self.registry_binary_blobs.Key_Tasks_SD else None,
+            'task_sd_permissions': self.registry_binary_blobs.Key_Tasks_SD.permissions if self.registry_binary_blobs.Key_Tasks_SD else None,
+            'task_sd_sddl': self.registry_binary_blobs.Key_Tasks_SD.sddl if self.registry_binary_blobs.Key_Tasks_SD else None,
         }
     
     def buffer(self, flat=False):
@@ -770,21 +767,23 @@ class windows_task(object):
     def process(self):
         """ Translate Raw Task Buffers/Values to corresponding objects """
         
-        if self.Actions:
+        if getattr(self, 'Actions', None):
             self.registry_binary_blobs.Actions = windows_task_actions(self.Actions)
 
-        if self.DynamicInfo:
+        if getattr(self, 'DynamicInfo', None):
             self.registry_binary_blobs.Dynamic_Info = windows_task_dynamic_info(self.DynamicInfo)
         
-        if self.Triggers:
+        if getattr(self, 'Triggers', None):
             self.registry_binary_blobs.Triggers = windows_task_triggers(self.Triggers)
         
-        if self.SD:
-            self.registry_binary_blobs.SD = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT)
-            self.registry_binary_blobs.SD_Key = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY) 
+        if getattr(self, 'SD', None):
+            self.registry_binary_blobs.Task_Tree_SD = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT)
+            self.registry_binary_blobs.Key_Tasks_SD = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
 
-            debug = ""
-    
+        if getattr(self, 'Key_Tree_SD_Bytes', None):
+            # self.registry_binary_blobs.Key_Tree_SD = self.registry_binary_blobs.get_security_descriptor(self.Key_Tree_SD_Bytes, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
+            pass
+
     def scan(self):
         
         # Refrences: 
@@ -995,9 +994,13 @@ class tasks(plugin):
                         # Saves values from Tree\%task_path% to Tasks\%task_guid%
                         reg_item.add_values(linked_reg_item.values)
 
-                    # Add key permissions as a value
-                    reg_item.add_values({'key_tree_sd_bytes': windows_task_registry_blobs.get_security_descriptor(None, key=linked_reg_item.key, return_bytes=True)})
-
+                    # Add Task's Tree node - Key SD permissions as a value
+                    # - need to add it as Bytes
+                    reg_item.add_values({'Key_Tree_SD_Bytes': windows_task_registry_blobs.get_security_descriptor(
+                        self=None,
+                        key=linked_reg_item.key,
+                        return_bytes=True)
+                    })
         # -----------------------------------------------------------------------------------------------------------.
         # - At this stage the reg_item contains values related to given task from Tree and Tasks node
 
@@ -1064,7 +1067,6 @@ class tasks(plugin):
                     reg_item.add_values(_action.variables(flat=True))
 
                     # Saves Action fields as new values
-                    # reg_item.add_values(_action.json(), _action_prefix)
                     reg_item.add_values(_action.json(flat=True))
 
                 # Saves parsed task's variables as new values
@@ -1075,7 +1077,6 @@ class tasks(plugin):
                     
                 # Trigger a Yara scan on a Task
                 if self.parsed_args.signature_scan_enabled:
-                    
                     task_obj.scan()
 
                 # Update Registry_item's tags
