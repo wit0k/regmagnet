@@ -7,8 +7,9 @@ rule Suspicious_Task_path {
         mitre_tid = "['None']"
     
     strings:
-        $p1 = /handler_payloads\:.*\\Temp.*/ nocase
+        $p1 = /handler_payloads\:.*\\Temp\\.*/ nocase
         $p2 = /handler_payloads\:.*Malware.*/ nocase
+        $p3 = /handler_payloads\:.*Windows\\Tasks.*/ nocase
 
     condition:
         //for all of ($p*) : (handler_payloads icontains "$")
@@ -69,29 +70,14 @@ rule Info_Recent_Manual_Trigger {
         triggers_count == 0 and dynamic_last_run_time_epoch >= ep_3d_ago
 }
 
-rule Test_Rule_1 {
-    meta:
-        author = "wit0k"
-        date = "2023-12-10"
-        description = "Triggers when a task has more than 2 Triggers and specific string"
-        reference = "..."
-        mitre_tid = "['None']"
-
-    strings:
-        $trigger_start_boundary = /start_boundary\:2023\-12\-09.*/ nocase
-
-    condition:
-        triggers_count > 2 and $trigger_start_boundary
-}
-
 rule Key_Permissions_Abuse {
     meta:
         author = "wit0k"
         date = "2024-01-05"
-        description = "Triggers when a task key has abused permissions"
+        description = "Triggers when a task key has abused permissions like a user SID is present in Tasks's Tasks or Tree key permissions..."
         reference = "..."
         mitre_tid = "['None']"
 
     condition:
-        key_permissions contains "S-1-5-21-"
+        sd_task_key_permissions contains "S-1-5-21-" or sd_tree_key_permissions contains "S-1-5-21-"
 }

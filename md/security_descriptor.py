@@ -70,19 +70,21 @@ class windows_security_descriptor(object): # https://github.com/xBlackSwan/winac
             self.permissions.append(ace_permissions)
     
     
-    def json(self, flat=True):
+    def json(self, flat=True, prefix=''):
         
-        sd_data = {}
+        sd_data = {
+            '%spermissions' % prefix: []
+        }
         
         if flat == False:
             sd_data.update({
-                'owner_name': self.owner_name,
-                'group_name': self.group_name,
-                'group_name': self.group_name,
-                'group_sid': self.group_sid,
-                'sddl': self.sddl,
+                '%sowner_name' % prefix: self.owner_name,
+                '%sgroup_name' % prefix: self.group_name,
+                '%sgroup_name' % prefix: self.group_name,
+                '%sgroup_sid' % prefix: self.group_sid,
+                '%ssddl' % prefix: self.sddl,
                 '_nested_keys_': ['permissions'],
-                'permissions': []
+                '%spermissions' % prefix: []
             })
         
         ace_index = 1
@@ -96,7 +98,7 @@ class windows_security_descriptor(object): # https://github.com/xBlackSwan/winac
                 for key, value in ace.items():
                     json_data.update({'ace_%s' % key: value})
                 
-                sd_data['permissions'].append(json_data)
+                sd_data['%spermissions' % prefix].append(json_data)
             ace_index += 1
         
         return sd_data

@@ -228,9 +228,9 @@ class windows_task_registry_blobs(object):
     Dynamic_Info = None
     Triggers = None
     User_Info = None
-    Task_Tree_SD = None
     Key_Tasks_SD = None
     Key_Tree_SD = None
+    SD = None
 
     def __init__(self):
         pass
@@ -261,8 +261,6 @@ class windows_task_registry_blobs(object):
             'dynamic_info': self.Dynamic_Info.json(flat=flat) if self.Dynamic_Info else {},
             'triggers': self.Triggers.json(flat=flat) if self.Triggers else {},
             # 'user_info': self.user_info,
-            'key_sd': self.Key_Tasks_SD.json(flat=flat),
-            'task_sd': self.Task_Tree_SD.json(flat=flat),
         }
 
 class windows_task_action_flat(object):
@@ -700,7 +698,7 @@ class windows_task(object):
     blob = None
     detections = None
     reg_item = None
-    Key_Tree_SD_Bytes = None
+    reg_items = None
 
     def time_variables(self) -> dict:
         
@@ -713,7 +711,7 @@ class windows_task(object):
         }
     def variables(self) -> dict:
         
-        return {
+        variables =  {
             'actions_count': self.registry_binary_blobs.Actions.count,                                                           # Count of Actions 
             'actions_size': len(self.Actions),                                                                                   # Total size of Actions buffer (in bytes)
             'actions_version': self.registry_binary_blobs.Actions.version,                                                       # Actions Magic
@@ -732,15 +730,18 @@ class windows_task(object):
             'triggers_count': self.registry_binary_blobs.Triggers.triggers_count,
             'triggers_start_boundary': self.registry_binary_blobs.Triggers.triggers_count,
             'triggers_end_boundary': self.registry_binary_blobs.Triggers.triggers_end_boundary,
-            'key_owner': self.registry_binary_blobs.Task_Tree_SD.owner_name if self.registry_binary_blobs.Task_Tree_SD else None,
-            'key_group': self.registry_binary_blobs.Task_Tree_SD.group_name if self.registry_binary_blobs.Task_Tree_SD else None,
-            'key_permissions': self.registry_binary_blobs.Task_Tree_SD.permissions if self.registry_binary_blobs.Task_Tree_SD else None,
-            'key_sddl': self.registry_binary_blobs.Task_Tree_SD.sddl if self.registry_binary_blobs.Task_Tree_SD else None,
-            'task_sd_owner': self.registry_binary_blobs.Key_Tasks_SD.owner_name if self.registry_binary_blobs.Key_Tasks_SD else None,
-            'task_sd_group': self.registry_binary_blobs.Key_Tasks_SD.group_name if self.registry_binary_blobs.Key_Tasks_SD else None,
-            'task_sd_permissions': self.registry_binary_blobs.Key_Tasks_SD.permissions if self.registry_binary_blobs.Key_Tasks_SD else None,
-            'task_sd_sddl': self.registry_binary_blobs.Key_Tasks_SD.sddl if self.registry_binary_blobs.Key_Tasks_SD else None,
         }
+        
+        for sd_obj in [(self.registry_binary_blobs.SD, 'sd_'), (self.registry_binary_blobs.Key_Tasks_SD, 'sd_task_key_'), (self.registry_binary_blobs.Key_Tree_SD, 'sd_tree_key_')]:
+            if sd_obj[0] is not None:
+                sd_obj_json = sd_obj[0].json(flat=False, prefix='%s' % sd_obj[1])
+                for key, value in sd_obj_json.items():
+                    if not '_nested_keys_' in key:
+                        variables.update({key:value})
+         
+        return variables           
+        
+        
     
     def buffer(self, flat=False):
         return buffer.create(self.json(flat=False))
@@ -758,11 +759,12 @@ class windows_task(object):
         self.field_names.append(name)
         self.__setattr__(name, value)
 
-    def __init__(self, reg_item, field_names=None) -> None:
+    def __init__(self, reg_items, field_names=None) -> None:
         
         if field_names is None: self.field_names = []
         self.registry_binary_blobs = windows_task_registry_blobs()
-        self.reg_item = reg_item
+        self.reg_items = [] if reg_items is None else reg_items
+        self.reg_item = reg_items[0] if len(reg_items) > 0 else None # Should be Tasks\{...} key
         
     def process(self):
         """ Translate Raw Task Buffers/Values to corresponding objects """
@@ -777,12 +779,18 @@ class windows_task(object):
             self.registry_binary_blobs.Triggers = windows_task_triggers(self.Triggers)
         
         if getattr(self, 'SD', None):
-            self.registry_binary_blobs.Task_Tree_SD = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT)
-            self.registry_binary_blobs.Key_Tasks_SD = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
+            for reg_item in self.reg_items:
+                if 'Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item.get_path():
+                    self.registry_binary_blobs.SD = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT)
 
-        if getattr(self, 'Key_Tree_SD_Bytes', None):
-            # self.registry_binary_blobs.Key_Tree_SD = self.registry_binary_blobs.get_security_descriptor(self.Key_Tree_SD_Bytes, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
-            pass
+        for reg_item in self.reg_items:
+            if 'Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks' in reg_item.get_path():
+                self.registry_binary_blobs.Key_Tasks_SD = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
+                
+            elif 'Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item.get_path():
+                self.registry_binary_blobs.Key_Tree_SD = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
+
+
 
     def scan(self):
         
@@ -979,6 +987,12 @@ class tasks(plugin):
         # Iterate over all tasks     
         for reg_item in tasks:
             
+            # Place holder for all Task related reg_items
+            task_reg_items = []
+            
+            # Add Tasks\{...} registry item
+            task_reg_items.append(reg_item)
+            
             # Query task tree/meta-data
             if reg_item.get_value('Path'):
                 tree = self.parser.query_key_wd(
@@ -989,18 +1003,22 @@ class tasks(plugin):
 
                 # Enrich Task's reg_item object with entries from Tree node
                 for linked_reg_item in tree:
+                    
+                    # Add Tree\<Task_Root> registry item
+                    task_reg_items.append(linked_reg_item)
+                    
                     if linked_reg_item.has_values:
                         # for reg_value in linked_reg_item.values:
                         # Saves values from Tree\%task_path% to Tasks\%task_guid%
                         reg_item.add_values(linked_reg_item.values)
 
                     # Add Task's Tree node - Key SD permissions as a value
-                    # - need to add it as Bytes
-                    reg_item.add_values({'Key_Tree_SD_Bytes': windows_task_registry_blobs.get_security_descriptor(
-                        self=None,
-                        key=linked_reg_item.key,
-                        return_bytes=True)
-                    })
+                    # - need to add it as Bytes, for now not supported
+                    # reg_item.add_values({'Key_Tree_SD_Bytes': windows_task_registry_blobs.get_security_descriptor(
+                    #    self=None,
+                    #    key=linked_reg_item.key,
+                    #    return_bytes=True)
+                    # })
         # -----------------------------------------------------------------------------------------------------------.
         # - At this stage the reg_item contains values related to given task from Tree and Tasks node
 
@@ -1015,7 +1033,7 @@ class tasks(plugin):
             # print(reg_item.get_path())
             
             # Create empty task object
-            task_obj = windows_task(reg_item=reg_item)
+            task_obj = windows_task(reg_items=task_reg_items)
 
             if reg_item.has_values:
             
