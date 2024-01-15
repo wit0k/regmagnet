@@ -785,10 +785,10 @@ class windows_task(object):
 
         for reg_item in self.reg_items:
             if 'Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks' in reg_item.get_path():
-                self.registry_binary_blobs.Key_Tasks_SD = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
+                self.registry_binary_blobs.Key_Tasks_SD = self.registry_binary_blobs.get_security_descriptor(reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
                 
             elif 'Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item.get_path():
-                self.registry_binary_blobs.Key_Tree_SD = self.registry_binary_blobs.get_security_descriptor(self.reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
+                self.registry_binary_blobs.Key_Tree_SD = self.registry_binary_blobs.get_security_descriptor(reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
 
 
 
