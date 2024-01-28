@@ -13,7 +13,7 @@ from os.path import getsize, basename, isfile
 
 from yarp import *
 from providers.provider import registry_provider
-from md.security_descriptor import security_descriptor
+from md.security_descriptor import security_descriptor, windows_security_descriptor
 from md.errors import CYELLOW, CEND
 
 logger = logging.getLogger('regmagnet')
@@ -237,6 +237,7 @@ class yarp(registry_provider):
         key_group = ''
         key_permissions = ''
         key_sd_bytes = b''
+        key_sd = None
 
         if parse_security_descriptor:
 
@@ -245,20 +246,20 @@ class yarp(registry_provider):
             # sc = security_descriptor(security_descriptor_bytes=_sec_descriptor)
 
             if sd_bytes:
-                key_sd_bytes, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=sd_bytes)
+                key_sd, key_sd_bytes, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=sd_bytes)
 
                 key_item = registry_provider.registry_key(_key_path=key_path, _key_path_unicode=key_path_unicode,
                                                           _key_timestamp=key_timestamp,
                                                           _key_subkey_count=key_subkey_count,
                                                           _key_value_count=key_value_count, _key_owner=key_owner,
                                                           _key_group=key_group, _key_permissions=key_permissions,
-                                                          _key_obj=key_obj, _key_sd_bytes=key_sd_bytes)
+                                                          _key_obj=key_obj, _key_sd_bytes=key_sd_bytes, _key_security_descriptor=key_sd)
 
         else:
 
             key_item = registry_provider.registry_key(_key_path=key_path, _key_path_unicode=key_path_unicode,
                                                       _key_timestamp=key_timestamp, _key_subkey_count=key_subkey_count,
-                                                      _key_value_count=key_value_count, _key_obj=key_obj, _key_sd_bytes=key_sd_bytes)
+                                                      _key_value_count=key_value_count, _key_obj=key_obj, _key_sd_bytes=key_sd_bytes, _key_security_descriptor=key_sd)
 
         if reg_handler:
             reg_handler.process_fields(registry_obj=key_item, reg_item_obj=reg_item_obj)
@@ -274,14 +275,14 @@ class yarp(registry_provider):
 
         try:
             key_sd_bytes = sk_record
-            key_security_descriptor = security_descriptor(security_descriptor_bytes=sk_record)
-            key_owner = key_security_descriptor.key_owner()
-            key_group = key_security_descriptor.key_group()
-            key_permissions = key_security_descriptor.key_permissions()
+            key_security_descriptor = windows_security_descriptor(sk_record)
+            key_owner = key_security_descriptor.owner_name
+            key_group = key_security_descriptor.group_name
+            key_permissions = key_security_descriptor.permissions
         except ValueError as msg:
             logger.debug(msg)
 
-        return key_sd_bytes, key_owner, key_group, key_permissions
+        return key_security_descriptor, key_sd_bytes, key_owner, key_group, key_permissions
 
     """ ------------------------------------------------------------------------------------------------------------ """
     """                        ~~~~  Registry Enum Functionality ~~~~                                              """
@@ -648,6 +649,7 @@ class yarp(registry_provider):
         key_owner = ''
         key_group = ''
         key_permissions = ''
+        key_sd = None
 
         # First process key related pattern matching
         # Check all enabled key Patterns:
@@ -712,7 +714,7 @@ class yarp(registry_provider):
 
         # -ko
         if search_pattern.KEY_REGEX_OWNER_PATTERN:
-            key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=key.security().descriptor())
+            key_sd, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=key.security().descriptor())
             if search_pattern.eval(input_data=key_owner, pattern_table=search_pattern.KEY_REGEX_OWNER_PATTERN,
                                            case_sensitive=case_sensitive):
 
@@ -724,7 +726,7 @@ class yarp(registry_provider):
 
         # -kp
         if search_pattern.KEY_REGEX_PERMISSIONS_PATTERN:
-            key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=key.security().descriptor())
+            key_sd, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=key.security().descriptor())
             if search_pattern.eval(input_data=key_permissions, pattern_table=search_pattern.KEY_REGEX_PERMISSIONS_PATTERN,
                                            case_sensitive=case_sensitive):
 

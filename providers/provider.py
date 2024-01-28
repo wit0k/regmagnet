@@ -50,9 +50,10 @@ class registry_provider(object):
             key_permissions = "key_permissions"
             key_sddl = "key_sddl"
             key_sd_bytes = "key_sd_bytes"
+            key_security_descriptor = "key_security_descriptor"
 
         def __init__(self, _key_path, _key_path_unicode, _key_timestamp, _key_subkey_count, _key_value_count, _key_obj,
-                         _key_owner='', _key_group='', _key_permissions='', _key_sddl='', _key_sd_bytes=b''):
+                         _key_owner='', _key_group='', _key_permissions='', _key_sddl='', _key_sd_bytes=b'', _key_security_descriptor=None):
 
             self.key_path = _key_path
             self.key_path_unicode = _key_path_unicode
@@ -65,6 +66,7 @@ class registry_provider(object):
             self.key_permissions = _key_permissions
             self.key_sddl = _key_sddl
             self.key_sd_bytes = _key_sd_bytes
+            self.key_security_descriptor = _key_security_descriptor
             
         def dict(self):
 
@@ -214,6 +216,7 @@ class registry_provider(object):
             self.has_values = None
             self.values_hash = ''
             self.skip = None
+            self.linked_items = []
 
         def add_named_fields(self, **fields):
 

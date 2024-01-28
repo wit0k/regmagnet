@@ -7,7 +7,7 @@ from os.path import getsize
 import struct
 
 from providers.provider import registry_provider
-from md.security_descriptor import security_descriptor
+from md.security_descriptor import security_descriptor, windows_security_descriptor
 
 from Registry import Registry
 from struct import unpack
@@ -155,6 +155,7 @@ class python_registry(registry_provider):
         key_group = ''
         key_permissions = ''
         key_sd_bytes = b''
+        key_sd = None
 
             
         if parse_security_descriptor:
@@ -162,7 +163,7 @@ class python_registry(registry_provider):
             sk_record = key_obj._nkrecord.sk_record()
 
             if sk_record:
-                key_sd_bytes, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=sk_record)
+                key_sd, key_sd_bytes, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=sk_record)
                 
                 if key_sd_bytes == b'' or key_sd_bytes is None:
                     print('Debug -> Empty key_sd_bytes: ', key_path)
@@ -172,7 +173,7 @@ class python_registry(registry_provider):
                                                           _key_subkey_count=key_subkey_count,
                                                           _key_value_count=key_value_count, _key_owner=key_owner,
                                                           _key_group=key_group, _key_permissions=key_permissions,
-                                                          _key_obj=key_obj, _key_sd_bytes=key_sd_bytes)
+                                                          _key_obj=key_obj, _key_sd_bytes=key_sd_bytes, _key_security_descriptor=key_sd)
             else:
                 print('Debug -> Empty SK record: ', key_path)
         else:
@@ -181,7 +182,7 @@ class python_registry(registry_provider):
             
             key_item = registry_provider.registry_key(_key_path=key_path, _key_path_unicode=key_path_unicode,
                                                       _key_timestamp=key_timestamp, _key_subkey_count=key_subkey_count,
-                                                      _key_value_count=key_value_count, _key_obj=key_obj, _key_sd_bytes=key_sd_bytes)
+                                                      _key_value_count=key_value_count, _key_obj=key_obj, _key_sd_bytes=key_sd_bytes, _key_security_descriptor=key_sd)
 
         if reg_handler:
             reg_handler.process_fields(registry_obj=key_item, reg_item_obj=reg_item_obj)
@@ -232,14 +233,14 @@ class python_registry(registry_provider):
                 
                 try:
                     # For some reason the HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks" has no permission that way...
-                    key_security_descriptor = security_descriptor(security_descriptor_bytes=sd_bytes)
-                    key_owner = key_security_descriptor.key_owner()
-                    key_group = key_security_descriptor.key_group()
-                    key_permissions = key_security_descriptor.key_permissions()
+                    key_security_descriptor = windows_security_descriptor(sd_bytes)
+                    key_owner = key_security_descriptor.owner_name
+                    key_group = key_security_descriptor.group_name
+                    key_permissions = key_security_descriptor.permissions
                 except ValueError as msg:
                     logger.debug(msg)
 
-        return sd_bytes, key_owner, key_group, key_permissions
+        return key_security_descriptor, sd_bytes, key_owner, key_group, key_permissions
 
     def enum_root_subkeys(self, key_path, hive, reg_handler=None, key_name_pattern=None) -> list:
 
@@ -592,6 +593,7 @@ class python_registry(registry_provider):
         key_owner = ''
         key_group = ''
         key_permissions = ''
+        key_sd = None
 
         # First process key related pattern matching
         # Check all enabled key Patterns:
@@ -656,7 +658,7 @@ class python_registry(registry_provider):
 
         # -ko
         if search_pattern.KEY_REGEX_OWNER_PATTERN:
-            key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=key._nkrecord.sk_record())
+            key_sd, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=key._nkrecord.sk_record())
             if search_pattern.eval(input_data=key_owner, pattern_table=search_pattern.KEY_REGEX_OWNER_PATTERN,
                                            case_sensitive=case_sensitive):
 
@@ -668,7 +670,7 @@ class python_registry(registry_provider):
 
         # -kp
         if search_pattern.KEY_REGEX_PERMISSIONS_PATTERN:
-            key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=key._nkrecord.sk_record())
+            key_sd, key_owner, key_group, key_permissions = self.get_key_dacl(sk_record=key._nkrecord.sk_record())
             if search_pattern.eval(input_data=key_permissions, pattern_table=search_pattern.KEY_REGEX_PERMISSIONS_PATTERN,
                                            case_sensitive=case_sensitive):
 

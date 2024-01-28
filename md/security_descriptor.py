@@ -23,6 +23,7 @@ https://github.com/msuhanov/regf
 
 https://referencesource.microsoft.com/#mscorlib/system/security/accesscontrol/securitydescriptor.cs,85a0744218296e54,references
 https://referencesource.microsoft.com/#mscorlib/system/security/accesscontrol/registrysecurity.cs
+https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-dtyp/20233ed8-a6c6-4097-aafa-dd545ed24428
 
 """
 
@@ -117,6 +118,8 @@ class windows_security_descriptor(object): # https://github.com/xBlackSwan/winac
         
     def get_ace_mask_permissions(self, ace, sd_obj_type) -> dict:
         
+        # print(ace.to_bytes())
+        
         ace_mask = ace.Mask
         ace_type = self.get_ace_type_str(ace.AceType)
         user = self.sd.Owner.wellknown_sid_lookup(ace.Sid.to_sddl())
@@ -128,7 +131,7 @@ class windows_security_descriptor(object): # https://github.com/xBlackSwan/winac
                 'user_sid': ace.Sid.to_sddl(),
                 'user_name': user,
                 'ace_type': ace_type,
-                'permissions':'([%s] - [%s] - %s)' % (user, ace_type, FILE_ACCESS_MASK(ace_mask).name),
+                'permissions':'([User:%s] - [File-%s] - %s)' % (user, ace_type, FILE_ACCESS_MASK(ace_mask).name),
                 'sd_type': 'SE_FILE_OBJECT',
             }
         elif sd_obj_type == SD_OBJECT_TYPE.SE_REGISTRY_KEY.value:
@@ -136,9 +139,11 @@ class windows_security_descriptor(object): # https://github.com/xBlackSwan/winac
                 'user_sid': ace.Sid.to_sddl(),
                 'user_name': user,
                 'ace_type': ace_type,
-                'permissions': '([%s] - [%s] - %s)' % (user, ace_type, REGISTRY_ACCESS_MASK(ace_mask).name),
+                'permissions': '([User:%s] - [Registry-%s] - %s)' % (user, ace_type, REGISTRY_ACCESS_MASK(ace_mask).name),
                 'sd_type': 'SE_REGISTRY_KEY',
-            }        
+            }
+        else:
+            pass
             
         return access_rights
     
@@ -706,6 +711,9 @@ class security_descriptor(object):
                 self.Dacl = self.parse_acl(security_descriptor_bytes[OffsetDacl:])
 
             self.remaining_bytes = sd_bytes.read('bytes:%s' % str(int((sd_bytes.len/8) - sd_bytes.pos/8)))
+            
+            # print(self.remaining_bytes.hex("-"))
+            
         except Exception as msg:
             logger.debug('ERROR: Unable to parse SD. Message: %s' % msg)
 
@@ -799,7 +807,7 @@ class security_descriptor(object):
 
     # Ref: https://msdn.microsoft.com/en-us/library/hh877835.aspx
     def parse_acl(self, buffer_bytes):
-
+        
         ace_entries = []
         _acl_header = security_descriptor.structures.acl_header()
 

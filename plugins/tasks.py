@@ -2,6 +2,7 @@ __version__ = '0.9'
 
 #from dataclasses import dataclass
 #from inspect import isclass
+from doctest import debug
 import logging
 from msilib.schema import File
 from operator import index
@@ -236,6 +237,8 @@ class windows_task_registry_blobs(object):
         pass
 
     def get_security_descriptor(self, key, obj_type=None, return_bytes=False):
+        
+        sk_record = None
         
         if isinstance(key, bytes):
             sk_record = key
@@ -738,6 +741,16 @@ class windows_task(object):
                 for key, value in sd_obj_json.items():
                     if not '_nested_keys_' in key:
                         variables.update({key:value})
+            else:
+                empty_sd = { 
+                '%sowner_name' % sd_obj[1]: None,
+                '%sgroup_name' % sd_obj[1]: None,
+                '%sgroup_name' % sd_obj[1]: None,
+                '%sgroup_sid' % sd_obj[1]: None,
+                '%ssddl' % sd_obj[1]: None,
+                '%spermissions' % sd_obj[1]: []
+                }
+                variables.update(empty_sd)
          
         return variables           
         
@@ -780,17 +793,17 @@ class windows_task(object):
         
         if getattr(self, 'SD', None):
             for reg_item in self.reg_items:
-                if 'Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item.get_path():
+                if 'Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item.get_path():
                     self.registry_binary_blobs.SD = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT)
 
-        for reg_item in self.reg_items:
-            if 'Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks' in reg_item.get_path():
-                self.registry_binary_blobs.Key_Tasks_SD = self.registry_binary_blobs.get_security_descriptor(reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
-                
-            elif 'Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item.get_path():
-                self.registry_binary_blobs.Key_Tree_SD = self.registry_binary_blobs.get_security_descriptor(reg_item.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
-
-
+        for reg_item_ in self.reg_items:
+                        
+            if 'Windows NT\CurrentVersion\Schedule\TaskCache\Tasks' in reg_item_.get_path():
+                # print('Start Tasks SD ------------')
+                self.registry_binary_blobs.Key_Tasks_SD = self.registry_binary_blobs.get_security_descriptor(reg_item_.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
+                # print('End Tasks SD ------------')
+            elif 'Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item_.get_path():
+                self.registry_binary_blobs.Key_Tree_SD = self.registry_binary_blobs.get_security_descriptor(reg_item_.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
 
     def scan(self):
         
@@ -987,11 +1000,8 @@ class tasks(plugin):
         # Iterate over all tasks     
         for reg_item in tasks:
             
-            # Place holder for all Task related reg_items
-            task_reg_items = []
-            
             # Add Tasks\{...} registry item
-            task_reg_items.append(reg_item)
+            reg_item.linked_items.append(reg_item)
             
             # Query task tree/meta-data
             if reg_item.get_value('Path'):
@@ -1005,20 +1015,12 @@ class tasks(plugin):
                 for linked_reg_item in tree:
                     
                     # Add Tree\<Task_Root> registry item
-                    task_reg_items.append(linked_reg_item)
+                    reg_item.linked_items.append(linked_reg_item)
                     
                     if linked_reg_item.has_values:
-                        # for reg_value in linked_reg_item.values:
                         # Saves values from Tree\%task_path% to Tasks\%task_guid%
                         reg_item.add_values(linked_reg_item.values)
 
-                    # Add Task's Tree node - Key SD permissions as a value
-                    # - need to add it as Bytes, for now not supported
-                    # reg_item.add_values({'Key_Tree_SD_Bytes': windows_task_registry_blobs.get_security_descriptor(
-                    #    self=None,
-                    #    key=linked_reg_item.key,
-                    #    return_bytes=True)
-                    # })
         # -----------------------------------------------------------------------------------------------------------.
         # - At this stage the reg_item contains values related to given task from Tree and Tasks node
 
@@ -1030,10 +1032,11 @@ class tasks(plugin):
         for reg_item in tasks:
 
             # Debug
-            # print(reg_item.get_path())
+            if '{6F60A340-FE5E-4D20-AE3A-53FF5A9D7299}' in reg_item.get_path():
+                pass
             
             # Create empty task object
-            task_obj = windows_task(reg_items=task_reg_items)
+            task_obj = windows_task(reg_items=reg_item.linked_items)
 
             if reg_item.has_values:
             
@@ -1069,6 +1072,8 @@ class tasks(plugin):
                         # Update Handler payloads
                         for item in class_handlers:
 
+                            reg_item.linked_items.append(item)
+    
                             # Saves values from associated COM clsss to Tasks\%task_guid%
                             reg_item.add_values(item.values)
 
