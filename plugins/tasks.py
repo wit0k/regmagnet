@@ -1112,7 +1112,7 @@ class tasks(plugin):
                 #    # exit(0)
                 
                 # Escape specific values (CSV fix)
-                values_to_escape = ['SecurityDescriptor']
+                values_to_escape = ['SecurityDescriptor', 'sd_permissions', 'sd_task_key_permissions', 'sd_tree_key_permissions']
                 for _val_te in values_to_escape:
                     _current_content = reg_item.get_value(_val_te)
                     if _current_content:
