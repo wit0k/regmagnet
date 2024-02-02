@@ -873,26 +873,31 @@ class windows_task(object):
                     scan_variables[key] = str(value)
                     
             # Compile all available Yara rules with task and action variables (Unique per scan)
-            rules = yara.compile(filepaths=rule_paths, externals=scan_variables)
-
-            # Look for a match
-            matches = rules.match(data=action.buffer())
+            try:
+                rules = yara.compile(filepaths=rule_paths, externals=scan_variables)
+                
+                # Look for a match
+                matches = rules.match(data=action.buffer())
             
-            for match in matches:
-                rule_matches[match.rule] = {
-                    'description': match.meta.get('description', ''),
-                    'mitre_tid': match.meta.get('mitre_tid', ''),
-                    'reference': match.meta.get('reference', ''),
-                }
+                for match in matches:
+                    rule_matches[match.rule] = {
+                        'description': match.meta.get('description', ''),
+                        'mitre_tid': match.meta.get('mitre_tid', ''),
+                        'reference': match.meta.get('reference', ''),
+                    }
 
-        if rule_matches:
-            for detection_name, detection_data in rule_matches.items():
-                logger.error(' [+] Suspicious Task: %s' % self.Path)
-                logger.error('  [*] SIG_MATCH_FOUND: %s' % detection_name)
-                logger.error('   [-] TID: %s -> Description: %s' % (detection_data.get('mitre_tid', 'None'), detection_data.get('description', 'None')) )
-                logger.error('   [-] Action -> %s' % action)
+                if rule_matches:
+                    for detection_name, detection_data in rule_matches.items():
+                        logger.error(' [+] Suspicious Task: %s' % self.Path)
+                        logger.error('  [*] SIG_MATCH_FOUND: %s' % detection_name)
+                        logger.error('   [-] TID: %s -> Description: %s' % (detection_data.get('mitre_tid', 'None'), detection_data.get('description', 'None')) )
+                        logger.error('   [-] Action -> %s' % action)
             
-            self.detections = list(rule_matches.keys())
+                self.detections = list(rule_matches.keys())
+            except Exception as e:
+                logger.error(' [-] ERROR: Scan Failed for Task: %s - Exception: %s' % (self.Path, str(e)))
+            
+            
                       
 class tasks(plugin):
     """ tasks - RegMagnet plugin  """

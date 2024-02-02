@@ -79,5 +79,5 @@ rule Key_Permissions_Abuse {
         mitre_tid = "['None']"
 
     condition:
-        sd_task_key_permissions contains "S-1-5-21-" or sd_tree_key_permissions contains "S-1-5-21-"
+        sd_task_key_permissions contains "S-1-5-21-" or sd_tree_key_permissions contains "S-1-5-21-" or (not sd_owner_name iequals "LOCAL_SYSTEM" and not sd_owner_name iequals "BUILTIN_ADMINISTRATORS")
 }
