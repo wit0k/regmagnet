@@ -60,10 +60,10 @@ class windows_security_descriptor(object): # https://github.com/xBlackSwan/winac
         self.sd_bytes = io.BytesIO(sd_bytes)
         self.sd = SECURITY_DESCRIPTOR.from_buffer(self.sd_bytes)
         self.sddl = '"%s"' % self.sd.to_sddl()
-        self.owner_name = self.get_owner_name()
         self.owner_sid = self.get_owner_sid()
-        self.group_name = self.get_group_name()
+        self.owner_name = self.get_owner_name() if isinstance(self.get_owner_name(), str) else self.owner_sid
         self.group_sid = self.get_group_sid()
+        self.group_name = self.get_group_name() if isinstance(self.get_group_name(), str) else self.group_sid
         self.permissions = []
         
         for ace in self.sd.Dacl.aces:

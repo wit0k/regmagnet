@@ -748,7 +748,7 @@ class windows_task(object):
                 '%sgroup_name' % sd_obj[1]: None,
                 '%sgroup_sid' % sd_obj[1]: None,
                 '%ssddl' % sd_obj[1]: None,
-                '%spermissions' % sd_obj[1]: []
+                '%spermissions' % sd_obj[1]: [],
                 }
                 variables.update(empty_sd)
          
@@ -895,7 +895,7 @@ class windows_task(object):
             
                 self.detections = list(rule_matches.keys())
             except Exception as e:
-                logger.error(' [-] ERROR: Scan Failed for Task: %s - Exception: %s' % (self.Path, str(e)))
+                logger.error(' [-] ERROR: Scan Failed for Task: %s - Key: %s - Exception: %s' % (self.Path, self.reg_items[0].get_path(), str(e)))
             
             
                       
@@ -1037,7 +1037,7 @@ class tasks(plugin):
         for reg_item in tasks:
 
             # Debug
-            if '{6F60A340-FE5E-4D20-AE3A-53FF5A9D7299}' in reg_item.get_path():
+            if '{2C32A994-F49C-4E27-B6F3-186BB5CB39B3}' in reg_item.get_path():
                 pass
             
             # Create empty task object

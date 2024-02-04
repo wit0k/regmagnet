@@ -157,6 +157,8 @@ class python_registry(registry_provider):
         key_sd_bytes = b''
         key_sd = None
 
+        # if '{2C32A994-F49C-4E27-B6F3-186BB5CB39B3}' in key_path:
+        #    pass
             
         if parse_security_descriptor:
 
