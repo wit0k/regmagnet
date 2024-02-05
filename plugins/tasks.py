@@ -242,6 +242,11 @@ class windows_task_registry_blobs(object):
         
         if isinstance(key, bytes):
             sk_record = key
+        elif getattr(key, 'key_security_descriptor', None):
+            if return_bytes == False:
+                return key.key_security_descriptor
+            else:
+                sk_record = key.key_sd_bytes
         elif getattr(key, 'key_sd_bytes', None):
             sk_record = key.key_sd_bytes
         elif getattr(key, 'key_obj', None): # Just in case (unfinished code...)
@@ -590,7 +595,9 @@ class windows_task_triggers(object):
     triggers_count = None
     triggers_start_boundary = None
     triggers_end_boundary = None
-
+    options = None
+    privileges = None
+    
     def json(self, flat=True):
         
         triggers_data = {}
@@ -667,6 +674,9 @@ class windows_task_triggers(object):
         self.triggers_count = len(self.obj.triggers)
         self.triggers_start_boundary = helpers.filetime_to_stime(self.obj.header.start_boundary.filetime)
         self.triggers_end_boundary = helpers.filetime_to_stime(self.obj.header.end_boundary.filetime)
+        self.options = self.obj.job_bucket.optional_settings
+        if getattr(self.options, 'privileges', None) is not None:
+            self.privileges = self.options.privileges
 
 class windows_task(object):
 
