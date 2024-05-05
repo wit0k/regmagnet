@@ -1,4 +1,4 @@
-__version__ = '0.0.0.7'
+__version__ = '0.1.0.1'
 __author__ = 'wit0k'
 
 __logfile__ = 'logs/regm.log'
