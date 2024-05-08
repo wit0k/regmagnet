@@ -408,6 +408,17 @@ class handlers(object):
 
             return input_data
 
+    class utf16_dump:
+
+        decription = 'utf16_dump() -> Dumps the UTF16 string and converts it to human readable format'
+
+        def utf16_dump(input_data: bytes):
+
+            if isinstance(input_data, bytes):
+                return input_data.decode('utf16', errors='ignore')
+            else:
+                return input_data
+
     class rslice:
 
         decription = 'slice(start) -> Slice the input data [Range: start:]'
