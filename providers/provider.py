@@ -7,7 +7,6 @@ import re
 import string
 import sys
 import math
-from typing import Self
 
 from md.errors import *
 
