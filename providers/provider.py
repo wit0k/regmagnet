@@ -12,7 +12,7 @@ from md.errors import *
 
 from os.path import isdir, isfile
 from os import getcwd
-from dateutil import parser as date_parser # pip install python-dateutil
+from dateutil import parser as date_parser # pip install python-dateutil.
 
 from re import match, IGNORECASE
 from importlib import import_module

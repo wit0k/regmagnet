@@ -26,7 +26,7 @@ class sam(plugin):
     """ Plugin specific variables """
     supported_hive_types = ['SAM']  # Hive type must be upper case
 
-    """ Constans """
+    """ Constants """
     # ACB Flags which tell us if the account is disabled/etc
     acb_flags = {0x0001: "Account Disabled",
                  0x0002: "Home directory required",
