@@ -25,6 +25,7 @@ from md.config import __default_registry_provider__
 from sqlalchemy import MetaData, Table, Column, String, Integer, create_engine, literal_column, distinct
 from sqlalchemy.orm import mapper, create_session, load_only
 from sqlalchemy.exc import OperationalError, IntegrityError, ArgumentError
+from md.time_class import dt_to_str
 
 logger = logging.getLogger('regmagnet')
 
@@ -443,6 +444,13 @@ class registry_provider(object):
 
             return format_fields
 
+        def get_value_obj(self, value_name: str, reg_item=None, default=None):
+
+            if reg_item is None: reg_item = self
+
+            for reg_value in reg_item.values:
+                if reg_value.value_name.lower() == value_name.lower():
+                    return reg_value
         def get_value(self, value_name: str, reg_item=None, default=None):
 
             if reg_item is None : reg_item = self
@@ -464,6 +472,18 @@ class registry_provider(object):
             if reg_item is None : reg_item = self
             
             return reg_item.key.key_path
+
+        def get_str_timestamp(self, format='%Y-%m-%d %H:%M:%S.%f'):
+            return dt_to_str(self.key.key_timestamp, strftime=format)
+
+        def get_key_name(self, reg_item=None, default=None):
+
+            if reg_item is None: reg_item = self
+
+            if '\\' in reg_item.key.key_path:
+                return reg_item.key.key_path.split('\\')[-1]
+            else:
+                return reg_item.key.key_path
 
     class registry_reg_handler(object):
 
