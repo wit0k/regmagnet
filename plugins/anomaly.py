@@ -80,7 +80,6 @@ class anomaly(plugin):
         plugin_args.add_argument("-e", "--entropy", type=float, action='store', required=True, dest='entropy_level',
                                  default=3.5, help='...')
 
-
         self.parsed_args = argsparser.parse_args(args=params)
         argc = params.__len__()
 

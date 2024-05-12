@@ -102,9 +102,10 @@ class plugin(object):
                     registry_handlers=self.parsed_args.registry_handlers.strip("'"), registry_parser=self.parser,
                     decode_param_from=self.parsed_args.rh_decode_param)
 
-    def is_hive_supported(self, hive):
-        if len(self.supported_hive_types) > 0:
-            if hive.hive_type in self.supported_hive_types:
+    def is_hive_supported(self, hive, supported_hive_types = None):
+        if supported_hive_types is None: supported_hive_types = self.supported_hive_types
+        if len(supported_hive_types) > 0:
+            if hive.hive_type in supported_hive_types:
                 return True
             else:
                 return False

@@ -2,10 +2,10 @@ import logging
 import argparse
 import struct
 from md.plugin import plugin
-
-
 from providers.provider import registry_provider
 from datetime import datetime
+from md.args import build_registry_handler
+from md.args import param_to_list_old as param_to_list
 
 logger = logging.getLogger('regmagnet')
 class sam(plugin):
@@ -388,6 +388,67 @@ class sam(plugin):
                         continue
 
         return results
+
+    def format_parsed_args(self):
+
+        if self.parsed_args:
+
+            if self.parsed_args.baseline_enabled:
+                self.baseline_enabled = True
+
+            if self.parsed_args.get_boot_key:
+                self.baseline_enabled = True
+            else:
+                self.baseline_enabled = False
+
+            #for attr in self.attribute_names_type_mapping.keys():
+            #    attr_current_value = getattr(self.parsed_args, attr)
+            #    attr_current_value = param_to_list(attr_current_value, strip_char='"', join_list=False)
+            #    setattr(self.parsed_args, attr, attr_current_value)
+
+            if self.parsed_args.registry_handlers:
+
+                self.parsed_args.registry_handlers = build_registry_handler(
+                    registry_handlers=self.parsed_args.registry_handlers.strip('"'), registry_parser=self.parser,
+                    decode_param_from=self.parsed_args.rh_decode_param)
+
+    def __init__(self, params, parser):
+
+        self.parser = parser
+        argsparser = argparse.ArgumentParser(usage=argparse.SUPPRESS,
+                                             description='Plugin: "%s" - Allows searching and querying offline registry '
+                                                         'hives' % self.name)
+
+        """ Argument groups """
+        plugin_args = argsparser.add_argument_group('Plugin arguments', "\n")
+
+        """ Script arguments """
+
+        plugin_args.add_argument('-b', '--baseline', action='store_true', dest='baseline_enabled',
+                                 required=False, default=False,
+                                 help="Print or export only the items which are not part of baseline")
+
+        plugin_args.add_argument("-rh", "--registry-handler", type=str, action='store', dest='registry_handlers',
+                                 required=False,
+                                 help="Registry handler string: handler_name<field>input_field<param>param_n<rfield>result_field like -rh 'b64_encode<field>value_name;value_content' [Note: Input fields and params must be ; separated]")
+
+        plugin_args.add_argument("-rhdp", "--registry-handler-decode-param", type=str, action='store',
+                                 dest='rh_decode_param',
+                                 required=False, default=None,
+                                 help='Allow to specify the handler parameters in any of supported encodings: "base64"')
+
+        plugin_args.add_argument("-bk", "--get-boot-key", action='store_true', required=False, dest='get_boot_key',
+                                 default=False, help='Get the boot key from a SYSTEM hive')
+
+        self.parsed_args = argsparser.parse_args(args=params)
+        argc = params.__len__()
+
+        #  Convert required parameters to list
+        self.format_parsed_args()
+
+        #  Load Baseline file according to parameters specified
+        self.load_baseline()
+
     def run(self, hive, registry_handler=None, args=None) -> list:
         """ Execute plugin specific actions on the hive
                     - The return value should be the list of registry_provider.registry_item objects """
@@ -396,9 +457,10 @@ class sam(plugin):
             logger.warning('Unsupported hive file')
             return []
 
-        if not self.is_hive_supported(hive=hive):
-            logger.warning('Unsupported hive type: %s' % hive.hive_type)
-            return []
+        if self.parsed_args.get_boot_key:
+            if not self.is_hive_supported(hive=hive, supported_hive_types=['SYSTEM']):
+                logger.warning('Unsupported hive type: %s' % hive.hive_type)
+                return []
 
         #  Load required registry provider
         self.load_provider()
@@ -409,6 +471,47 @@ class sam(plugin):
 
         registry_handler = self.choose_registry_handler(main_reg_handler=registry_handler, plugin_reg_handler=self.parsed_args.registry_handlers)
 
-        items.extend(self.sam_parse_users(items, hive, registry_handler))
+        # Quick helper function (Easier to call it)
+        def query_value_content(path, default, registry_handler=None):
+
+            print('Query Value: %s' % path)
+
+            value_name = path.split("\\")[-1]
+
+            if not isinstance(path, list):
+                path = [path]
+
+            items = self.parser.query_value_wd(value_path=path, hive=hive, plugin_name=self.name,
+                                       reg_handler=registry_handler)
+
+            if len(items) == 0:
+                return default
+            else:
+                if value_name != '*':
+                    return items[0].get_value(value_name, default=default)
+                else:
+                    value_name = items[0].values[0].value_name
+                    print('Return content of value name: %s' % value_name)
+                    return items[0].get_value(value_name, default=default)
+
+        if self.parsed_args.get_boot_key:
+            CurrentControlSet = 'ControlSet00%d' % query_value_content(path=r'Select\Current', default=1, registry_handler=None)
+
+            transforms = [8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7]
+            bootkey_obf = b''
+            for key in ['JD', 'Skew1', 'GBG', 'Data']:
+                bootkey_obf += query_value_content('%s\\Control\\Lsa\\%s\\*' % (CurrentControlSet, key), default=b'\x00')
+
+            # bootkey_obf = bytes.fromhex(bootkey_obf)
+            bootkey = b''
+            for i in range(len(bootkey_obf)):
+                bootkey += bootkey_obf[transforms[i]:transforms[i] + 1]
+
+            print('[SYSTEM] bootkey: %s' % bootkey.hex())
+
+            pass
+            # Select\Current
+        else:
+            items.extend(self.sam_parse_users(items, hive, registry_handler))
 
         return self.return_items(items)

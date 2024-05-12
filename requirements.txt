@@ -13,3 +13,4 @@ yara-python
 kaitaistruct
 #pywin32
 winacl
+unicrypto
