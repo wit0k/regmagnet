@@ -5,9 +5,48 @@ from md.plugin import plugin
 from providers.provider import registry_provider
 from datetime import datetime
 from md.args import build_registry_handler
-from md.args import param_to_list_old as param_to_list
 
 logger = logging.getLogger('regmagnet')
+
+from struct import unpack
+
+class MemoryBlock(object):
+    """ Taken from https://raw.githubusercontent.com/msuhanov/yarp"""
+
+    def __init__(self, buf):
+        self.buf = buf
+
+    def read_binary(self, pos, length=None):
+        if length is None:
+            b = self.buf[pos:]
+            return b
+
+        b = self.buf[pos: pos + length]
+        if len(b) != length:
+            raise Exception('Cannot read data (expected: {} bytes, read: {} bytes)'.format(length, len(b)))
+
+        return b
+
+    def read_uint8(self, pos):
+        b = self.read_binary(pos, 1)
+        return unpack('<B', b)[0]
+
+    def read_uint16(self, pos):
+        b = self.read_binary(pos, 2)
+        return unpack('<H', b)[0]
+
+    def read_uint32(self, pos):
+        b = self.read_binary(pos, 4)
+        return unpack('<L', b)[0]
+
+    def read_uint64(self, pos):
+        b = self.read_binary(pos, 8)
+        return unpack('<Q', b)[0]
+
+    def get_size(self):
+        return len(self.buf)
+
+
 class sam(plugin):
     """ sam - RegMagnet plugin  """
 
@@ -46,6 +85,7 @@ class sam(plugin):
              0xb0: "Default Guest Acct"}
 
     """ Pieces of code borrowed from https://raw.githubusercontent.com/yampelo/samparser/master/samparser.py """
+
     def sam_parse_users(self, items, hive, registry_handler):
         # SAM\Domains\Account\Users\regex(.*)\regex(ResetData|UserPasswordHint)
         # SAM\Domains\Account\Users
@@ -54,10 +94,11 @@ class sam(plugin):
         # _registry_item.add(_plugin_name=self.name, _registry_hive=hive, _registry_key=reg_item.key, _registry_values=_values, _key_obj=reg_item.key_obj)
 
         # Enumerate Names subkeys and derive AccountCreatedOn and AccountName fpr each user
-        for reg_item in self.parser.query_key_wd(key_path=r'SAM\Domains\Account\Users\Names\*', hive=hive, plugin_name=self.name,
+        for reg_item in self.parser.query_key_wd(key_path=r'SAM\Domains\Account\Users\Names\*', hive=hive,
+                                                 plugin_name=self.name,
                                                  reg_handler=registry_handler):
 
-            if 'Names\\' in reg_item.get_path(): # Process sub keys only (not the root)
+            if 'Names\\' in reg_item.get_path():  # Process sub keys only (not the root)
                 _values = {
                     'AccountCreatedOn': reg_item.get_str_timestamp(),
                     'AccountName': reg_item.get_key_name(),
@@ -70,7 +111,7 @@ class sam(plugin):
         i = 0
         # Enumerate Users subkeys (excluding Names) and parse F
         for reg_item in self.parser.query_key_wd(key_path=r'SAM\Domains\Account\Users\*', hive=hive,
-                                                         plugin_name=self.name, reg_handler=registry_handler):
+                                                 plugin_name=self.name, reg_handler=registry_handler):
 
             if 'Names\\' not in reg_item.get_path():  # Do not process Names subkey
 
@@ -83,7 +124,8 @@ class sam(plugin):
                         with open('F_%s_%s' % (reg_item.get_key_name(), i), 'wb') as ofile:
                             ofile.write(value.value_content)
 
-                        b = struct.unpack('<xxxxxxxxLLxxxxxxxxLLxxxxxxxxLLLxxxxHxxxxxxHHxxxxxxxxxxxx', value.value_content)
+                        b = struct.unpack('<xxxxxxxxLLxxxxxxxxLLxxxxxxxxLLLxxxxHxxxxxxHHxxxxxxxxxxxx',
+                                          value.value_content)
                         f_values[b[6]] = []  # Create a List and sort by RID
                         f_values[b[6]].append(self.getTime(b[0], b[1]))  # Last Login Date
                         f_values[b[6]].append((self.getTime(b[2], b[3])))  # This is password reset date
@@ -123,6 +165,7 @@ class sam(plugin):
                         ntpwhash_lngth = struct.unpack("<L", data[172:176])[0]
 
                         _values = {}
+
                         def get_user_account_type(account_type):
                             for acctype in self.types:
                                 if account_type == int(acctype):
@@ -130,17 +173,23 @@ class sam(plugin):
                             return 'Unknown [%s]' % str(account_type)
 
                         _values = {
-                            'UserName': data[(username_ofst + 0xCC):(username_ofst + 0xCC + username_lngth)].replace(b'\x00',b''),
+                            'UserName': data[(username_ofst + 0xCC):(username_ofst + 0xCC + username_lngth)].replace(
+                                b'\x00', b''),
                             'FullName': data[(fullname_ofst + 0xCC):(fullname_ofst + 0xCC + fullname_lngth)],
-                            'UserComment': data[(comment_ofst + 0xCC):(comment_ofst + 0xCC + comment_lngth)].decode('utf16', errors='ignore'),
+                            'UserComment': data[(comment_ofst + 0xCC):(comment_ofst + 0xCC + comment_lngth)].decode(
+                                'utf16', errors='ignore'),
                             'UserAccountType': get_user_account_type(account_type),
                             'RID': str(int(reg_item.get_key_name().strip("0000"), 16)),
-                            'DriveLetter': data[(driveletter_ofst + 0xCC):(driveletter_ofst + 0xCC + driveletter_lngth)],
-                            'ProfilePath': data[(profilepath_ofst + 0xCC):(profilepath_ofst + 0xCC + profilepath_lngth)],
-                            'LogonScript': data[(logonscript_ofst + 0xCC):(logonscript_ofst + 0xCC + logonscript_lngth)],
-                            'Workstations': data[(workstations_ofst + 0xCC):(workstations_ofst + 0xCC + workstations_lngth)],
-                            'LM_PWD_Hash': data[(lmpwhash_ofset+0xCC):(lmpwhash_ofset+0xCC + lmpwhash_lngth)].hex(),
-                            'NT_PWD_Hash': data[(ntpwhash_ofset+0xCC):(ntpwhash_ofset+0xCC + ntpwhash_lngth)].hex(),
+                            'DriveLetter': data[
+                                           (driveletter_ofst + 0xCC):(driveletter_ofst + 0xCC + driveletter_lngth)],
+                            'ProfilePath': data[
+                                           (profilepath_ofst + 0xCC):(profilepath_ofst + 0xCC + profilepath_lngth)],
+                            'LogonScript': data[
+                                           (logonscript_ofst + 0xCC):(logonscript_ofst + 0xCC + logonscript_lngth)],
+                            'Workstations': data[
+                                            (workstations_ofst + 0xCC):(workstations_ofst + 0xCC + workstations_lngth)],
+                            'LM_PWD_Hash': data[(lmpwhash_ofset + 0xCC):(lmpwhash_ofset + 0xCC + lmpwhash_lngth)].hex(),
+                            'NT_PWD_Hash': data[(ntpwhash_ofset + 0xCC):(ntpwhash_ofset + 0xCC + ntpwhash_lngth)].hex(),
                             'LastLoginDate': f_values[list(f_values.keys())[0]][0],
                             'PasswordResetDate': f_values[list(f_values.keys())[0]][1],
                             'PasswordFailDate': f_values[list(f_values.keys())[0]][2],
@@ -223,8 +272,6 @@ class sam(plugin):
         # We have to individually parse both the F and V for every user.
         f_values = {}  # Used to temp store F Data before we get V Value data
 
-
-
         sam = Registry.Registry(samhive)  # open the hive using python-registry
 
         usersRoot = sam.open("SAM\\Domains\\Account\\Users")
@@ -290,21 +337,22 @@ class sam(plugin):
                         results['users'][username] = OrderedDict()
 
                         results['users'][username]['Full Name'] = data[(fullname_ofst + 0xCC):(
-                                    fullname_ofst + 0xCC + fullname_lngth)]
+                                fullname_ofst + 0xCC + fullname_lngth)]
                         results['users'][username]['Comment'] = data[(comment_ofst + 0xCC):(
-                                    comment_ofst + 0xCC + comment_lngth)]
+                                comment_ofst + 0xCC + comment_lngth)]
                         for acctype in types:
                             if account_type == int(acctype):
                                 results['users'][username]['Account Type'] = types[acctype]
-                        results['users'][username]['RID'] = str(int(x.name().strip("0000"), 16))  # Since im converting hex to int, you need to tell python it's in base 16
+                        results['users'][username]['RID'] = str(int(x.name().strip("0000"),
+                                                                    16))  # Since im converting hex to int, you need to tell python it's in base 16
                         results['users'][username]['Drive Letter'] = data[(driveletter_ofst + 0xCC):(
-                                    driveletter_ofst + 0xCC + driveletter_lngth)]
+                                driveletter_ofst + 0xCC + driveletter_lngth)]
                         results['users'][username]['Profile Path'] = data[(profilepath_ofst + 0xCC):(
-                                    profilepath_ofst + 0xCC + profilepath_lngth)]
+                                profilepath_ofst + 0xCC + profilepath_lngth)]
                         results['users'][username]['Logon Script'] = data[(logonscript_ofst + 0xCC):(
-                                    logonscript_ofst + 0xCC + logonscript_lngth)]
+                                logonscript_ofst + 0xCC + logonscript_lngth)]
                         results['users'][username]['Workstations'] = data[(workstations_ofst + 0xCC):(
-                                    workstations_ofst + 0xCC + workstations_lngth)]
+                                workstations_ofst + 0xCC + workstations_lngth)]
                         # results['users'][username]['LM Password Hash'] = data[(lmpwhash_ofset+0xCC):(lmpwhash_ofset+0xCC + lmpwhash_lngth)]
                         # results['users'][username]['NT Password Hash'] = data[(ntpwhash_ofset+0xCC):(ntpwhash_ofset+0xCC + ntpwhash_lngth)]
 
@@ -349,7 +397,7 @@ class sam(plugin):
                 groupname = data[(name_offst + 52):(name_offst + 52 + name_length)]
                 results['groups'][groupname] = OrderedDict()
                 results['groups'][groupname]['Group Description'] = data[(comment_offst + 52):(
-                            comment_offst + 52 + comment_lngth)]
+                        comment_offst + 52 + comment_lngth)]
                 results['groups'][groupname]['Last Write'] = x.timestamp()
                 results['groups'][groupname]['User Count'] = user_count
                 results['groups'][groupname]['Members'] = ''
@@ -401,13 +449,7 @@ class sam(plugin):
             else:
                 self.baseline_enabled = False
 
-            #for attr in self.attribute_names_type_mapping.keys():
-            #    attr_current_value = getattr(self.parsed_args, attr)
-            #    attr_current_value = param_to_list(attr_current_value, strip_char='"', join_list=False)
-            #    setattr(self.parsed_args, attr, attr_current_value)
-
             if self.parsed_args.registry_handlers:
-
                 self.parsed_args.registry_handlers = build_registry_handler(
                     registry_handlers=self.parsed_args.registry_handlers.strip('"'), registry_parser=self.parser,
                     decode_param_from=self.parsed_args.rh_decode_param)
@@ -469,7 +511,43 @@ class sam(plugin):
 
         items = []
 
-        registry_handler = self.choose_registry_handler(main_reg_handler=registry_handler, plugin_reg_handler=self.parsed_args.registry_handlers)
+        registry_handler = self.choose_registry_handler(main_reg_handler=registry_handler,
+                                                        plugin_reg_handler=self.parsed_args.registry_handlers)
+
+        def query_key_class(path, default, registry_handler=None):
+            print('Query Key Class: %s' % path)
+
+            key_name = path.split("\\")[-1]
+
+            if not isinstance(path, list):
+                path = [path]
+
+            items = self.parser.query_key_wd(key_path=path, hive=hive, plugin_name=self.name,
+                                             reg_handler=registry_handler)
+
+            # nkobj = items[0].key_obj.key_node
+            nkobj = items[0].key_obj._nkrecord
+            nkbuffer = MemoryBlock(nkobj._buf[nkobj._offset:])
+            # nkbuffer = MemoryBlock(items[0].key_obj.key_node.buf)
+            hive_buffer = MemoryBlock(nkobj._buf)
+
+            classname_offset = nkbuffer.read_uint32(48)
+            classname_length = nkbuffer.read_uint16(74)
+            classname_data_offset = classname_offset + 4096 + 4
+
+            try:
+                # class_data = hive_buffer.read_binary(classname_offset, classname_length)
+                class_data = hive_buffer.read_binary(classname_data_offset, classname_length)
+                print('Data[%s:+%s+%s] == %s' %(classname_data_offset, classname_data_offset, classname_length, class_data))
+            except Exception as msg:
+                class_data = b''
+                print('ERROR -> Data[%s:+%s+%s] == %s' %(classname_data_offset, classname_data_offset, classname_length, str(msg)))
+
+            return class_data
+
+            # offset_classname + 4096 + 4
+            # 2476175873796da8e548166b0c8776f9 # Obfuscated boot key
+            # e57973176b488758246d760c7616f9a8 # De-obfuscated bootk key
 
         # Quick helper function (Easier to call it)
         def query_value_content(path, default, registry_handler=None):
@@ -482,7 +560,7 @@ class sam(plugin):
                 path = [path]
 
             items = self.parser.query_value_wd(value_path=path, hive=hive, plugin_name=self.name,
-                                       reg_handler=registry_handler)
+                                               reg_handler=registry_handler)
 
             if len(items) == 0:
                 return default
@@ -495,14 +573,18 @@ class sam(plugin):
                     return items[0].get_value(value_name, default=default)
 
         if self.parsed_args.get_boot_key:
-            CurrentControlSet = 'ControlSet00%d' % query_value_content(path=r'Select\Current', default=1, registry_handler=None)
-
+            CurrentControlSet = 'ControlSet00%d' % query_value_content(path=r'Select\Current', default=1,
+                                                                       registry_handler=None)
             transforms = [8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7]
-            bootkey_obf = b''
-            for key in ['JD', 'Skew1', 'GBG', 'Data']:
-                bootkey_obf += query_value_content('%s\\Control\\Lsa\\%s\\*' % (CurrentControlSet, key), default=b'\x00')
 
-            # bootkey_obf = bytes.fromhex(bootkey_obf)
+            bootkey_obf = ''
+            for key in ['JD', 'Skew1', 'GBG', 'Data']:
+                cnt = query_key_class('%s\\Control\\Lsa\\%s' % (CurrentControlSet, key), default='')
+                # cnt = query_value_content('%s\\Control\\Lsa\\%s\\*' % (CurrentControlSet, key), default=b'\x00')
+                cnt = cnt.decode('utf-16-le')
+                bootkey_obf += cnt
+
+            bootkey_obf = bytes.fromhex(bootkey_obf)
             bootkey = b''
             for i in range(len(bootkey_obf)):
                 bootkey += bootkey_obf[transforms[i]:transforms[i] + 1]
