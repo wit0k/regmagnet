@@ -26,14 +26,63 @@ from sqlalchemy import MetaData, Table, Column, String, Integer, create_engine, 
 from sqlalchemy.orm import mapper, create_session, load_only
 from sqlalchemy.exc import OperationalError, IntegrityError, ArgumentError
 from md.time_class import dt_to_str
+from struct import unpack
 
 logger = logging.getLogger('regmagnet')
 
+class MemoryBlock(object):
+    """ Taken from https://raw.githubusercontent.com/msuhanov/yarp"""
+
+    def __init__(self, buf):
+        self.buf = buf
+
+    def read_binary(self, pos, length=None):
+        if length is None:
+            b = self.buf[pos:]
+            return b
+
+        b = self.buf[pos: pos + length]
+        if len(b) != length:
+            raise Exception('Cannot read data (expected: {} bytes, read: {} bytes)'.format(length, len(b)))
+
+        return b
+
+    def read_uint8(self, pos):
+        b = self.read_binary(pos, 1)
+        return unpack('<B', b)[0]
+
+    def read_uint16(self, pos):
+        b = self.read_binary(pos, 2)
+        return unpack('<H', b)[0]
+
+    def read_uint32(self, pos):
+        b = self.read_binary(pos, 4)
+        return unpack('<L', b)[0]
+
+    def read_uint64(self, pos):
+        b = self.read_binary(pos, 8)
+        return unpack('<Q', b)[0]
+
+    def get_size(self):
+        return len(self.buf)
 
 class registry_provider(object):
 
     name = None
     provider = None
+
+
+    class nk_record(object):
+
+        def __init__(self, buffer: bytes):
+
+            if b'nk' not in buffer[0:2]:
+                raise  Exception('Unsupported NK Record buffer')
+
+            self.nk_buffer = MemoryBlock(buffer)
+            self.classname_offset = self.nk_buffer.read_uint32(48)
+            self.classname_length = self.nk_buffer.read_uint16(74)
+            self.classname_data_offset = self.classname_offset + 4096 + 4
 
     class registry_key(object):
 
@@ -51,9 +100,10 @@ class registry_provider(object):
             key_sddl = "key_sddl"
             key_sd_bytes = "key_sd_bytes"
             key_security_descriptor = "key_security_descriptor"
+            key_nk_record = "key_nk_record"
 
         def __init__(self, _key_path, _key_path_unicode, _key_timestamp, _key_subkey_count, _key_value_count, _key_obj,
-                         _key_owner='', _key_group='', _key_permissions='', _key_sddl='', _key_sd_bytes=b'', _key_security_descriptor=None):
+                         _key_owner='', _key_group='', _key_permissions='', _key_sddl='', _key_sd_bytes=b'', _key_security_descriptor=None, key_nk_record=None):
 
             self.key_path = _key_path
             self.key_path_unicode = _key_path_unicode
@@ -67,6 +117,7 @@ class registry_provider(object):
             self.key_sddl = _key_sddl
             self.key_sd_bytes = _key_sd_bytes
             self.key_security_descriptor = _key_security_descriptor
+            self.key_nk_record = key_nk_record
             
         def dict(self):
 
@@ -161,9 +212,10 @@ class registry_provider(object):
             hive_md5 = 'hive_md5'
             hive_user = 'hive_user'
             hive_mapping = 'hive_mapping'
+            hive_buffer = 'hive_mapping'
 
         def __init__(self, hive_header, hive_file_path, hive_file_name, hive_type, hive_root, hive_size, hive_mapping, hive_user='',
-                     hive_obj=None):
+                     hive_obj=None, hive_buffer=b''):
 
             self.hive_header = hive_header
             self.hive_file_path = hive_file_path
@@ -175,7 +227,7 @@ class registry_provider(object):
             self.hive_md5 = ''
             self.hive_user = hive_user
             self.hive_mapping = hive_mapping
-
+            self.hive_buffer = hive_buffer
 
         def dict(self) -> dict():
             """ Output the hive information as dict """

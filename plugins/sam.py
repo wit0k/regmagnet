@@ -2,50 +2,11 @@ import logging
 import argparse
 import struct
 from md.plugin import plugin
-from providers.provider import registry_provider
+from providers.provider import registry_provider, MemoryBlock
 from datetime import datetime
 from md.args import build_registry_handler
 
 logger = logging.getLogger('regmagnet')
-
-from struct import unpack
-
-class MemoryBlock(object):
-    """ Taken from https://raw.githubusercontent.com/msuhanov/yarp"""
-
-    def __init__(self, buf):
-        self.buf = buf
-
-    def read_binary(self, pos, length=None):
-        if length is None:
-            b = self.buf[pos:]
-            return b
-
-        b = self.buf[pos: pos + length]
-        if len(b) != length:
-            raise Exception('Cannot read data (expected: {} bytes, read: {} bytes)'.format(length, len(b)))
-
-        return b
-
-    def read_uint8(self, pos):
-        b = self.read_binary(pos, 1)
-        return unpack('<B', b)[0]
-
-    def read_uint16(self, pos):
-        b = self.read_binary(pos, 2)
-        return unpack('<H', b)[0]
-
-    def read_uint32(self, pos):
-        b = self.read_binary(pos, 4)
-        return unpack('<L', b)[0]
-
-    def read_uint64(self, pos):
-        b = self.read_binary(pos, 8)
-        return unpack('<Q', b)[0]
-
-    def get_size(self):
-        return len(self.buf)
-
 
 class sam(plugin):
     """ sam - RegMagnet plugin  """
@@ -479,7 +440,7 @@ class sam(plugin):
                                  required=False, default=None,
                                  help='Allow to specify the handler parameters in any of supported encodings: "base64"')
 
-        plugin_args.add_argument("-bk", "--get-boot-key", action='store_true', required=False, dest='get_boot_key',
+        plugin_args.add_argument("-gbk", "--get-boot-key", action='store_true', required=False, dest='get_boot_key',
                                  default=False, help='Get the boot key from a SYSTEM hive')
 
         self.parsed_args = argsparser.parse_args(args=params)
@@ -514,10 +475,7 @@ class sam(plugin):
         registry_handler = self.choose_registry_handler(main_reg_handler=registry_handler,
                                                         plugin_reg_handler=self.parsed_args.registry_handlers)
 
-        def query_key_class(path, default, registry_handler=None):
-            print('Query Key Class: %s' % path)
-
-            key_name = path.split("\\")[-1]
+        def query_key_class_data(path, default, registry_handler=None):
 
             if not isinstance(path, list):
                 path = [path]
@@ -525,34 +483,19 @@ class sam(plugin):
             items = self.parser.query_key_wd(key_path=path, hive=hive, plugin_name=self.name,
                                              reg_handler=registry_handler)
 
-            # nkobj = items[0].key_obj.key_node
-            nkobj = items[0].key_obj._nkrecord
-            nkbuffer = MemoryBlock(nkobj._buf[nkobj._offset:])
-            # nkbuffer = MemoryBlock(items[0].key_obj.key_node.buf)
-            hive_buffer = MemoryBlock(nkobj._buf)
-
-            classname_offset = nkbuffer.read_uint32(48)
-            classname_length = nkbuffer.read_uint16(74)
-            classname_data_offset = classname_offset + 4096 + 4
+            nkobj: registry_provider.nk_record = items[0].key.key_nk_record
+            hive_buffer = MemoryBlock(items[0].hive.hive_buffer)
 
             try:
-                # class_data = hive_buffer.read_binary(classname_offset, classname_length)
-                class_data = hive_buffer.read_binary(classname_data_offset, classname_length)
-                print('Data[%s:+%s+%s] == %s' %(classname_data_offset, classname_data_offset, classname_length, class_data))
+                class_data = hive_buffer.read_binary(nkobj.classname_data_offset, nkobj.classname_length)
             except Exception as msg:
-                class_data = b''
-                print('ERROR -> Data[%s:+%s+%s] == %s' %(classname_data_offset, classname_data_offset, classname_length, str(msg)))
+                class_data = default
+                print('ERROR -> Data[%s:+%s+%s] == %s' %(nkobj.classname_data_offset, nkobj.classname_data_offset, nkobj.classname_length, str(msg)))
 
             return class_data
 
-            # offset_classname + 4096 + 4
-            # 2476175873796da8e548166b0c8776f9 # Obfuscated boot key
-            # e57973176b488758246d760c7616f9a8 # De-obfuscated bootk key
-
         # Quick helper function (Easier to call it)
-        def query_value_content(path, default, registry_handler=None):
-
-            print('Query Value: %s' % path)
+        def query_value_data(path, default, registry_handler=None):
 
             value_name = path.split("\\")[-1]
 
@@ -573,13 +516,13 @@ class sam(plugin):
                     return items[0].get_value(value_name, default=default)
 
         if self.parsed_args.get_boot_key:
-            CurrentControlSet = 'ControlSet00%d' % query_value_content(path=r'Select\Current', default=1,
+            CurrentControlSet = 'ControlSet00%d' % query_value_data(path=r'Select\Current', default=1,
                                                                        registry_handler=None)
             transforms = [8, 5, 4, 2, 11, 9, 13, 3, 0, 6, 1, 12, 14, 10, 15, 7]
 
             bootkey_obf = ''
             for key in ['JD', 'Skew1', 'GBG', 'Data']:
-                cnt = query_key_class('%s\\Control\\Lsa\\%s' % (CurrentControlSet, key), default='')
+                cnt = query_key_class_data('%s\\Control\\Lsa\\%s' % (CurrentControlSet, key), default='')
                 # cnt = query_value_content('%s\\Control\\Lsa\\%s\\*' % (CurrentControlSet, key), default=b'\x00')
                 cnt = cnt.decode('utf-16-le')
                 bootkey_obf += cnt
@@ -589,9 +532,33 @@ class sam(plugin):
             for i in range(len(bootkey_obf)):
                 bootkey += bootkey_obf[transforms[i]:transforms[i] + 1]
 
-            print('[SYSTEM] bootkey: %s' % bootkey.hex())
+            # print('[SYSTEM] bootkey: %s' % bootkey.hex())
 
-            pass
+            bootkey_hex = bootkey.hex()
+
+            lsa_key = self.parser.query_key_wd(key_path='%s\\Control\\Lsa' % CurrentControlSet, hive=hive, plugin_name=self.name,
+                                       reg_handler=registry_handler)[0]
+
+            new_item = registry_provider.registry_item()
+            new_item.add(
+                _plugin_name=self.name, _registry_hive=lsa_key.hive, _registry_key=lsa_key.key, _key_obj=lsa_key.key_obj,
+                _registry_values=[
+                    registry_provider.registry_value(
+                        _value_path=lsa_key.key.key_path,
+                        _value_name='BootKeyHex',
+                        _value_name_unicode=bytes('BootKeyHex', "utf-16le"),
+                        _value_type=1,
+                        _value_type_str="REG_SZ",
+                        _value_content=str(bootkey_hex),
+                        _value_content_str=str(bootkey_hex),
+                        _value_content_unicode=bytes(str(bootkey_hex), "utf-16le") if str(bootkey_hex) is not None else 'None',
+                        _value_size=len(str(str(bootkey_hex))),
+                        _value_raw_data=str(str(bootkey_hex)).encode()
+                )]
+            )
+
+            items.append(new_item)
+
             # Select\Current
         else:
             items.extend(self.sam_parse_users(items, hive, registry_handler))

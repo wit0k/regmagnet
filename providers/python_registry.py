@@ -99,10 +99,12 @@ class python_registry(registry_provider):
                 if _value_name:
                     _user_sid = _value_name
 
+        hive_buffer = _hive_obj._buf
+
         # hive_header, hive_file_path, hive_file_name, hive_type, hive_root, hive_size, hive_obj=None, meta_data={}
         _hive = registry_provider.registry_hive(hive_header=_hive_header, hive_file_path=hive_file_path,
                                                hive_file_name=_hive_file_name, hive_type=_hive_type, hive_root=_hive_root,
-                                               hive_size=_hive_size, hive_obj=_hive_obj, hive_user=_user_sid, hive_mapping=_hive_mapping)
+                                               hive_size=_hive_size, hive_obj=_hive_obj, hive_user=_user_sid, hive_mapping=_hive_mapping, hive_buffer=hive_buffer)
 
         return _hive
 
@@ -156,9 +158,8 @@ class python_registry(registry_provider):
         key_permissions = ''
         key_sd_bytes = b''
         key_sd = None
-
-        # if '{2C32A994-F49C-4E27-B6F3-186BB5CB39B3}' in key_path:
-        #    pass
+        key_nk_record = None
+        key_nk_record = registry_provider.nk_record(key_obj._nkrecord._buf[key_obj._nkrecord._offset:])
             
         if parse_security_descriptor:
 
@@ -175,7 +176,7 @@ class python_registry(registry_provider):
                                                           _key_subkey_count=key_subkey_count,
                                                           _key_value_count=key_value_count, _key_owner=key_owner,
                                                           _key_group=key_group, _key_permissions=key_permissions,
-                                                          _key_obj=key_obj, _key_sd_bytes=key_sd_bytes, _key_security_descriptor=key_sd)
+                                                          _key_obj=key_obj, _key_sd_bytes=key_sd_bytes, _key_security_descriptor=key_sd, key_nk_record=key_nk_record)
             else:
                 print('Debug -> Empty SK record: ', key_path)
         else:
@@ -184,7 +185,7 @@ class python_registry(registry_provider):
             
             key_item = registry_provider.registry_key(_key_path=key_path, _key_path_unicode=key_path_unicode,
                                                       _key_timestamp=key_timestamp, _key_subkey_count=key_subkey_count,
-                                                      _key_value_count=key_value_count, _key_obj=key_obj, _key_sd_bytes=key_sd_bytes, _key_security_descriptor=key_sd)
+                                                      _key_value_count=key_value_count, _key_obj=key_obj, _key_sd_bytes=key_sd_bytes, _key_security_descriptor=key_sd, key_nk_record=key_nk_record)
 
         if reg_handler:
             reg_handler.process_fields(registry_obj=key_item, reg_item_obj=reg_item_obj)
