@@ -169,8 +169,39 @@ class sam(plugin):
                         value.value_content = value.value_content.decode('utf16', errors='ignore')
 
                     if 'SupplementalCredentials' == value.value_name:
+                        SupplementalCredentialsBuffer: MemoryBlock = MemoryBlock(bytes(value.value_content))
                         value.value_content = '--- ENCRYPTED(SupplementalCredentials) ---'
 
+                        # Parse SupplementalCredentials
+                        """
+                        #define LAZY_IV_SIZE	16
+                        #define ANYSIZE_ARRAY	1
+                        
+                        typedef struct _KIWI_ENCRYPTED_SUPPLEMENTAL_CREDENTIALS {
+                            DWORD unk0;
+                            DWORD unkSize;
+                            DWORD unk1; // flags ?
+                            DWORD originalSize;
+                            BYTE iv[LAZY_IV_SIZE];
+                            BYTE encrypted[ANYSIZE_ARRAY];
+                        } KIWI_ENCRYPTED_SUPPLEMENTAL_CREDENTIALS, *PKIWI_ENCRYPTED_SUPPLEMENTAL_CREDENTIALS;
+                        """
+
+                        cur_pos = 0
+                        unk0 = SupplementalCredentialsBuffer.read_binary(pos=0, length=4)
+                        cur_pos += 4
+                        unkSize = SupplementalCredentialsBuffer.read_binary(pos=cur_pos, length=4)
+                        cur_pos += 4
+                        unk1 = SupplementalCredentialsBuffer.read_binary(pos=cur_pos, length=4)
+                        cur_pos += 4
+                        originalSize = SupplementalCredentialsBuffer.read_binary(pos=cur_pos, length=4)
+                        cur_pos += 4
+                        iv = SupplementalCredentialsBuffer.read_binary(pos=cur_pos, length=16)
+                        cur_pos += 4
+                        data_size = len(SupplementalCredentialsBuffer.buf) - cur_pos
+                        encrypted = SupplementalCredentialsBuffer.read_binary(pos=cur_pos, length=data_size)
+
+                        pass
         return items
 
     def binary_to_sid(binary_data):
@@ -559,7 +590,6 @@ class sam(plugin):
 
             items.append(new_item)
 
-            # Select\Current
         else:
             items.extend(self.sam_parse_users(items, hive, registry_handler))
 
