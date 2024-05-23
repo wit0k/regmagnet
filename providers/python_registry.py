@@ -159,7 +159,7 @@ class python_registry(registry_provider):
         key_sd_bytes = b''
         key_sd = None
         key_nk_record = None
-        key_nk_record = registry_provider.nk_record(key_obj._nkrecord._buf[key_obj._nkrecord._offset:])
+        key_nk_record = registry_provider.nk_record(key_obj._nkrecord._buf[key_obj._nkrecord._offset:key_obj._nkrecord._offset+220])
             
         if parse_security_descriptor:
 
