@@ -35,6 +35,7 @@ logger = logging.getLogger('regmagnet')
     - Onboard provider: https://github.com/EricZimmerman/Registry/
     - It could make sense to create a plugin for https://github.com/microsoft/AppModelSamples/tree/master, https://www.tmurgent.com/TmBlog/?p=3618, https://github.com/nasbench/Misc-Research/blob/main/Other/UWP-Applications-Persistence.md
     - Add CSV delimiter to parameters
+    - Add a plugin that analysis the file extensions (including HKCU, and printing their handlers)
 """
 
 
