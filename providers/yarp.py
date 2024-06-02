@@ -326,7 +326,7 @@ class yarp(registry_provider):
                     else:
                         _subkey_names.append(_subkey_name)
 
-                subkeys['root'] = _subkey_names
+                subkeys[key_path] = _subkey_names
 
             except Exception as msg:
                 logger.debug(
