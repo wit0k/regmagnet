@@ -135,6 +135,7 @@ QUERY_VALUE_LIST = [
 ]
 
 QUERY_KEY_LIST = [
+    r"regex(\.tmp|temp|asd|doc[a-zA-Z]{0,2}|xls[a-zA-Z]{0,2}|ppt[a-zA-Z]{0,2}.*)", # Covers unexpected extension handler in HKEY_CURRENT_USER\Software\Classes\ like .tmp  or others [UsrClass.dat required] [Research would have to be made to confirm the extensions, that shall or not usually there... might be better to update anomaly plugin or so...]
     r"Select",
     r"Software\Microsoft\Windows\CurrentVersion\Run",
     r"Microsoft\Windows\CurrentVersion\Run",
@@ -226,8 +227,7 @@ QUERY_KEY_LIST = [
     r"ControlSet001\Control\Session Manager\BootExecute", # https://www2.isye.gatech.edu/~mgoetsch/cali/Windows%20Configuration/Windows%20Configuration%20Html/ModifyingDefaultBootupRunofCHKDSK_F.htm
     r"ControlSet002\Control\Session Manager\BootExecute",
     r"ControlSet003\Control\Session Manager\BootExecute",
-    r"regex(\.tmp|temp|asd|doc[a-zA-Z]{0,2}|xls[a-zA-Z]{0,2}|ppt[a-zA-Z]{0,2}.*)", # Covers unexpected extension handler in HKEY_CURRENT_USER\Software\Classes\ like .tmp  or others [UsrClass.dat required] [Research would have to be made to confirm the extensions, that shall or not usually there... might be better to update anomaly plugin or so...]
-]
+    ]
 
 
 class autoruns(plugin):

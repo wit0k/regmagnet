@@ -247,7 +247,10 @@ class python_registry(registry_provider):
 
     def enum_root_subkeys(self, key_path, hive, reg_handler=None, key_name_pattern=None) -> list:
 
-        subkeys = {}
+        if key_path is None: key_path = hive.hive_root
+
+        subkeys = {key_path: []}
+
         #  Check if both hive and key_path were given
         if hive:
             #  Case: key_path starts with *\
@@ -255,24 +258,26 @@ class python_registry(registry_provider):
 
             try:
                 key = hive.hive_obj.root()
-                _subkey_names = []
 
                 for _subkey in key.subkeys():
-                    _subkey_name = _subkey.path()
+                    try:
+                        _subkey_name = _subkey.path()
+                    except UnicodeError as msg:
+                        _subkey_name = bytes(msg.args[1]).decode(msg.args[0], errors='ignore')
+                        logger.error('Error: %s. Failing bytes: %s. Trying to fix the key name to: %s' % (str(msg.reason), msg.args[1], _subkey_name))
+
                     _, __, _subkey_name = _subkey_name.rpartition('\\')
 
                     if key_name_pattern:
                         if re.search(key_name_pattern, _subkey_name, re.IGNORECASE):
-                            _subkey_names.append(_subkey_name)
+                            subkeys[key_path].append(_subkey_name)
                     else:
-                        _subkey_names.append(_subkey_name)
-
-                subkeys['root'] = _subkey_names
+                        subkeys[key_path].append(_subkey_name)
 
             except Registry.RegistryKeyNotFoundException:
-                logger.debug('KEY NOT FOUND: %s, %s' % (hive.hive_file_path, str(key_path)))
+                logger.error('KEY NOT FOUND: %s, %s' % (hive.hive_file_path, str(key_path)))
             except Exception as msg:
-                logger.debug(
+                logger.error(
                     '%s: Key: %s\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, key_path, str(msg)))
 
             return subkeys

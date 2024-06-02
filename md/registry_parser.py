@@ -17,15 +17,32 @@ from md.archive import archive
 from md.plugin import plugin
 from sys import exit
 from sys import stdout
+from enum import Flag, auto
 
-stdout.reconfigure(encoding='utf-8')
+stdout.reconfigure(encoding='utf8')
 
 logger = logging.getLogger('regmagnet')
+
+class registry_action(object):
+
+    QUERY_KEY = 1
+    QUERY_VALUE = 2
+    QUERY_KEY_CLASS = 3
+
+class registry_action_settings(Flag):
+
+    IGNORECASE = auto()
+    PRINT_EMPTY = auto()
+    RECURSIVE = auto()
+
+    DEFAULT_KEY = IGNORECASE | PRINT_EMPTY
+    DEFAULT_VALUE = IGNORECASE | PRINT_EMPTY
+    DEFAULT_CLASS = IGNORECASE | PRINT_EMPTY
 
 class registry_parser(object):
 
     """ Class registry_parser """
-    name = "Registry Parser"
+    name = "parser"
     reg = None
     supported_output_format = ['csv', 'tab', 'winreg']
     format_fields = []  # Keeps the list of currently loaded format fields
@@ -465,11 +482,58 @@ class registry_parser(object):
 
 
     """ ------------------------------------------------------------------------------------------------------------- 
+                                    QUERY Functions (NEW)
+        ------------------------------------------------------------------------------------------------------------- 
+    """
+    def query(self, action: int, path: list, hive: registry_provider.registry_hive, reg_handler=None, settings=None, items=None, plugin_name=None):
+        """ The query function allows querying for keys and values (according to given parameters)
+        - path: A list of path to query (may include path pattern(s))
+
+        """
+        # Set Defaults
+        if isinstance(path, str): path = [path]
+        if items is None: items = []
+        if plugin_name is None: plugin_name = 'parser'
+
+        # Query Key
+        if action == registry_action.QUERY_KEY:
+            if settings is None: settings = registry_action_settings.DEFAULT_KEY
+
+        # Query Value
+        if action == registry_action.QUERY_VALUE:
+            if settings is None: settings = registry_action_settings.DEFAULT_VALUE
+
+        # Query Key Class
+        if action == registry_action.QUERY_KEY:
+            if settings is None: settings = registry_action_settings.DEFAULT_CLASS
+
+        paths = {}
+        _path = ''
+        for _path in path:
+            # Use case - Wildcard is found:
+            if any([s for s in ['regex(', '*\\', '\\*'] if s in _path]):
+                # wildcard_is_present = ((1 if _path.startswith('*\\') else 0) + (1 if _path.endswith('*\\') else 0) + (1 if _path.endswith('*') else 0) + (1 if '\\*\\' in _path else 0))
+                pass
+            else:
+                # Use case - No wildcard found
+                if action == registry_action.QUERY_KEY:
+
+                    # Use case - Query the _path recursively
+                    if registry_action_settings.RECURSIVE in settings:
+                        item = self.query_key_recursive(key_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
+                    else:
+                        # Use case - Query given key
+                        item = self.query_key(key_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
+                        if item:
+                            items.extend(item)
+
+
+    """ ------------------------------------------------------------------------------------------------------------- 
                                     QUERY Functions
         ------------------------------------------------------------------------------------------------------------- 
     """
 
-    def query_key_wd(self, key_path, hive, reg_handler=None, plugin_name='parser') -> list:
+    def query_key_wd(self, key_path: str, hive, reg_handler=None, plugin_name='parser') -> list:
         """ Use it to query a static key_path or a dynamic key_path containing a wildcard """
 
         output_keys = []
@@ -488,8 +552,8 @@ class registry_parser(object):
                 regex_wildcards = re.findall(pattern=r"(regex\([^\(]+\))", string=_key_path, flags=re.IGNORECASE)
                 wildcard_count = _key_path.count('\*') + _key_path.count('\*\\') + (1 if _key_path.startswith('*\\') else 0)
 
-                # Case: The key_path does contain any wildcard
-                if wildcard_count == 0 and regex_wildcards == []:
+                # Case: The key_path does not contain any wildcard
+                if wildcard_count == 0 and len(regex_wildcards) == 0:
                     item = self.query_key(key_path=_key_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
                     if item:
                         output_keys.extend(item)
@@ -513,6 +577,7 @@ class registry_parser(object):
 
                     #  Case: The he key_path starts with *\, so need to enumerate hive's root
                     elif wildcard_count == 1 and _key_path[0:2] == '*\\':
+                        # REMARK: Fix it ... enum_root_subkeys supports the regex patter, no need to do it twice
                         _subkeys = self.reg.enum_root_subkeys(key_path=_key_path, hive=hive, reg_handler=reg_handler)
                         _keys = self.expand_wildcard(_key_path=_key_path, _subkeys=_subkeys, hive=hive, reg_handler=reg_handler)
 
@@ -540,24 +605,27 @@ class registry_parser(object):
                                                  'marker: %s, Key: %s' % (regex_wildcards[0], _key_path))
                                     continue
 
-                                #  Get the subkeys from the hive's root
-                                _subkeys = self.reg.enum_root_subkeys(key_path=_key_path, hive=hive,
-                                                                       reg_handler=reg_handler, key_name_pattern=key_name_pattern)
+                                #  Get all subkeys from the hive's root, matching the pattern
+                                # _subkeys = self.reg.enum_root_subkeys(key_path=hive.hive_root, hive=hive, reg_handler=reg_handler, key_name_pattern=key_name_pattern)
+                                _subkeys = self.reg.enum_root_subkeys(key_path=hive.hive_root, hive=hive, reg_handler=reg_handler,
+                                                                      key_name_pattern=key_name_pattern)
 
+                                # Probably not needed:
                                 #  Expand regex wildcard. Get the list of matching keys. Since the wildcard starts from
-                                #  the begining of the key_path, we need to feed it with all matched subkeys
-                                _keys = self.expand_regex(_key_path=_key_path, _subkeys=_subkeys, hive=hive,
-                                                             reg_handler=reg_handler, regex_wildcards=regex_wildcards)
+                                #  Because the _key_path starts with the wildcard, we assume we are querying the root
+                                #  REMARK: Entire function requires a re-design
+                                # _keys = self.expand_regex(_key_path=hive.hive_root, _subkeys=_subkeys, hive=hive, reg_handler=reg_handler, regex_wildcards=regex_wildcards)
 
-                                if _keys:
+                                if len(_subkeys.get(hive.hive_root, [])) > 0:
                                     #  Query all expanded keys
-                                    item = self.query_key(key_path=_keys, hive=hive, reg_handler=reg_handler,
+                                    item = self.query_key(key_path=_subkeys[hive.hive_root], hive=hive, reg_handler=reg_handler,
                                                           plugin_name=plugin_name)
 
-                                if item:
+                                if len(item) > 0:
                                     output_keys.extend(item)
 
                             else:
+                                # Case: The key_path does not start from the pattern, however the pattern is present
                                 _keys = []
                                 #  Expand regex wildcard. Get the list of matching keys
                                 _keys = self.expand_regex(_key_path=_key_path, hive=hive, reg_handler=reg_handler,
@@ -575,7 +643,7 @@ class registry_parser(object):
                         else:
 
                             _keys = []
-
+                            # Case: The key path ends with *\ (To be investigated)
                             if _key_path[0:2] == '*\\':
                                 _subkeys = self.reg.enum_root_subkeys(key_path=_key_path, hive=hive,
                                                                        reg_handler=reg_handler)
@@ -820,9 +888,8 @@ class registry_parser(object):
 
             _key_parts = _key_path.split(regex_wildcard, 1)  # Split at the first occurrence
 
-            #  Get the real pattern
-            key_name_pattern = re.findall(pattern=r"regex\((.+)\)",
-                                          string=regex_wildcard, flags=re.IGNORECASE)
+            #  Get the searched key regex pattern
+            key_name_pattern = re.findall(pattern=r"regex\((.+)\)", string=regex_wildcard, flags=re.IGNORECASE)
 
             if key_name_pattern:
                 key_name_pattern = key_name_pattern[0]
@@ -830,26 +897,46 @@ class registry_parser(object):
                 logger.error('Syntax error. Unable to determine the key_name_pattern!')
                 return None
 
+            if '.tmp' in _key_path and '2003724_USRCLASS.DAT' in hive.hive_file_path:
+                pass
+
+
             #  Get the first element of the key_path (The one before the wildcard)
             for _key_part in _key_parts[0:1]:
 
                 #  Enumerate all sub-keys of they key_path (before the wildcard)
-                if _subkeys:
-                    _key_part_subkeys = _subkeys
-                    _key_part = 'root'
-                    _remaining_key_part = "".join(_key_parts[1:])
-                else:
-                    _key_part_subkeys = self.reg.enum_key_subkeys(key_path=_key_part, hive=hive, reg_handler=reg_handler,
-                                                          key_name_pattern=key_name_pattern)
-                    _remaining_key_part = "".join(_key_parts[_key_parts.index(_key_part) + 1:])
+                if _subkeys is not None:
+                    if isinstance(_subkeys, dict):
+                        if _key_path in _subkeys.keys():
+                            # enum_root_subkeys(self, key_path, hive, reg_handler=None, key_name_pattern=None)
+                            _key_part_subkeys = self.reg.enum_root_subkeys(key_path='root', hive=hive)
+                        elif len(_subkeys.keys()) == 0:
+                            if _key_part == '':
+                                _key_part_subkeys = self.reg.enum_root_subkeys(key_path='root', hive=hive)
+                            else:
+                                pass
+                        else:
+                            _key_part_subkeys = _subkeys
+                    else:
+                        _remaining_key_part = "".join(_key_parts[1:])
+                        _key_part_subkeys = {_key_part: _subkeys}
+
+                #else:
+                #    _key_part_subkeys = self.reg.enum_key_subkeys(key_path=_key_part, hive=hive, reg_handler=reg_handler, key_name_pattern=key_name_pattern)
+                #    _remaining_key_part = "".join(_key_parts[_key_parts.index(_key_part) + 1:])
+
+                # Quick fix - not sure why it happens
+                if _key_part_subkeys is None:
+                    print('Error -> expand_regex -> ', _key_part, 'in', _key_path)
+                    _key_part_subkeys = {_key_part: []}
 
                 #  Proceed only when there are sub-keys:
-                if _key_part_subkeys.get(_key_part, []):
+                if len(_key_part_subkeys.get(_key_part, [])) > 0:
 
                     #  Create new_key_path out of: key_path (before the wildcard) + (subkey) + key_path(after wildcard)
                     for _key_part_subkey in _key_part_subkeys[_key_part]:
 
-                        if not _key_part == 'root':
+                        if not _key_part == hive.hive_root:
                             _new_key = _key_part + _key_part_subkey + _remaining_key_part
                         else:
                             _new_key = _key_part_subkey + _remaining_key_part
@@ -943,7 +1030,7 @@ class registry_parser(object):
             result.append(CRED + 'Hive type: ' + CEND + hive.hive_type)
             result.append(CRED + 'Subkeys: ' + CEND)
 
-            _result = self.reg.enum_root_subkeys(key_path=None, hive=hive, reg_handler=reg_handler)
+            _result = self.reg.enum_root_subkeys(key_path='root', hive=hive, reg_handler=reg_handler)
 
             if _result.get('root', []):
                 result.append(' [*] ' + hive.hive_root + ':')
