@@ -300,7 +300,15 @@ class python_registry(registry_provider):
                 logger.debug('ENUMERATE: %s, %s' % (hive.hive_file_path, _key))
 
                 try:
-                    key = hive.hive_obj.open(_key)
+                    if _key.lower() != hive.hive_root.lower():
+                        if _key.startswith('%s\\' % hive.hive_root) or _key.startswith('%s\\\\' % hive.hive_root):
+                            # Strip unnecessary root key
+                            _key = _key.replace('%s\\\\\\' % hive.hive_root, '')
+                            _key = _key.replace('%s\\' % hive.hive_root, '')
+                        key = hive.hive_obj.open(_key)
+                    else:
+                        key = hive.hive_obj.root()
+
                     _subkey_names = []
 
                     for _subkey in key.subkeys():

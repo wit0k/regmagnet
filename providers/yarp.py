@@ -352,7 +352,7 @@ class yarp(registry_provider):
                 logger.debug('ENUMERATE: %s, %s' % (hive.hive_file_path, _key))
 
                 try:
-                    key = hive.hive_obj.find_key(_key)
+                    key = hive.hive_obj.find_key(_key) if _key.lower() != hive.hive_root.lower() else hive.hive_obj.root_key()
 
                     if key is None:
                         logger.debug('KEY NOT FOUND: %s, %s' % (hive.hive_file_path, _key))

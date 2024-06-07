@@ -488,8 +488,10 @@ class registry_parser(object):
     def query(self, action: int, path: list, hive: registry_provider.registry_hive, reg_handler=None, settings=None, items=None, plugin_name=None):
         """ The query function allows querying for keys and values (according to given parameters)
         - path: A list of path to query (may include path pattern(s))
-
         """
+
+        print('query: ', path)
+
         # Set Defaults
         if isinstance(path, str): path = [path]
         if items is None: items = []
@@ -509,23 +511,135 @@ class registry_parser(object):
 
         paths = {}
         _path = ''
-        for _path in path:
-            # Use case - Wildcard is found:
-            if any([s for s in ['regex(', '*\\', '\\*'] if s in _path]):
-                # wildcard_is_present = ((1 if _path.startswith('*\\') else 0) + (1 if _path.endswith('*\\') else 0) + (1 if _path.endswith('*') else 0) + (1 if '\\*\\' in _path else 0))
-                pass
-            else:
-                # Use case - No wildcard found
-                if action == registry_action.QUERY_KEY:
 
-                    # Use case - Query the _path recursively
+        # Helper functions
+        def split(s: str, delimiter, escape_char='\\\\'):
+            if escape_char in s:
+                s = s.replace(escape_char, '<escape>')
+
+            s = s.split(delimiter)
+
+            for p in s:
+                if p.startswith('<escape>'):
+                    p = p.replace('<escape>', '')
+
+            return s
+
+        def replace(s: str, old, new, escape_char='\\\\'):
+            s = re.sub(r'\\\\(?!\\)', '<escape>', s)
+            s = s.replace('%s' % old, '%s' % new)
+
+            if '<escape>' in s:
+                s = s.replace('<escape>', '')
+            return s
+
+
+        for _path in path:
+            logger.error('Process path: %s' % _path)
+
+            ##- Wildcard is found:
+            # if any([s for s in ['regex(', '*\\', '\\*'] if s in _path]):
+            if any([s for s in [r'regex\(', r'(?<!\\)\\\*', r'^\*\\'] if re.search(s, _path, re.IGNORECASE)]):
+
+                logger.error('The path contains wildcard: %s' % True)
+
+                # Replace wildcard with regex equivalent, and fill the root key (if needed)
+                if _path.startswith('*\\'):
+                    _path = '%s%s' % ('regex(.*)', _path[1:])
+                    if '\\' in _path:
+                        _path = '%s\\%s' % (hive.hive_root, _path)
+                    else:
+                        _path = hive.hive_root
+                if _path.endswith('*'):
+                    _path = '%s%s' % (_path[:-1], 'regex(.*)')
+                if '\\*\\' in _path:
+                    # _path = _path.replace('\\*\\', '\\regex(.*)\\')
+                    _path = replace(_path, old='\\*\\', new='\\regex(.*)\\', escape_char='\\\\')
+
+                _path_elements = split(s=_path, delimiter='\\', escape_char='\\\\')
+                logger.error('The path elements: %s' % _path_elements)
+
+                # Build key paths
+                current_path = []
+
+                logger.error('Iterating path elements: %s' % _path_elements)
+                for _path_item in _path_elements:
+                    logger.error('Pull path element: %s' % _path_item)
+
+                    regex_pattern = re.search(pattern=r"regex\((.*)\)", string=_path_item, flags=re.IGNORECASE)
+                    if regex_pattern is None:
+                        logger.error('The path element "%s" does not contain the regex pattern... Escape if key is a *' % _path_item)
+                        if '*' == _path_item:
+                            _path_item = '\\\\*'
+
+                        current_path.append(_path_item)
+                        logger.error('Current path depth: %s' % current_path)
+                    else:
+                        if regex_pattern.group(1):
+                            key_pattern = regex_pattern.group(1)
+                            macro_pattern = regex_pattern.group(0)
+                            # Proceed to get matching keys
+                            matching_subkeys =  self.reg.enum_key_subkeys(key_path='\\'.join(current_path), hive=hive, reg_handler=reg_handler, key_name_pattern=key_pattern)
+                            logger.error('The path element "%s" contain the regex pattern: "%s"' % (_path_item, macro_pattern))
+                            logger.error('The subkeys found : %s' % matching_subkeys)
+
+                            if len(matching_subkeys.get('\\'.join(current_path), [])) > 0:
+                                logger.error('Iterating matching_subkeyss: %s' % matching_subkeys.get('\\'.join(current_path), []))
+                                for sub_key in matching_subkeys.get('\\'.join(current_path), []):
+
+                                    logger.error('Take the subkey: %s' % sub_key)
+
+                                    # Escape the key having same name as a wildcard or macro pattern (Edge use-case, anti-infinite loop trick)
+                                    if sub_key == '*':
+                                        logger.error('Escaping subkey: %s' % sub_key)
+                                        sub_key = '\\\\*'
+                                    if sub_key.lower() == macro_pattern.lower():
+                                        logger.error('Escaping subkey: %s' % sub_key)
+                                        sub_key = '\\\\%s' % sub_key
+
+                                    _dyn_path = '\\'.join(current_path + [sub_key] + _path_elements[len(current_path)+1:])
+                                    logger.error('Build Path -> %s' % _dyn_path)
+                                    logger.error('Recursive Query Start -> %s' % _dyn_path)
+                                    self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items)
+                                    logger.error('-----------------------------------------------------')
+                                    logger.error('Recursive Query End -> %s' % _dyn_path)
+                                    logger.error('-----------------------------------------------------')
+                            else:
+                                logger.error('Path Not Found or Empty Key - %s' % '\\'.join(current_path + ['%s' % key_pattern]))
+                                break
+                        else:
+                            logger.error('The path element "%s" does not contain the regex pattern... Escape if key is a *' % _path_item)
+                            if '*' == _path_item:
+                                _path_item = '\\\\*'
+
+                            current_path.append(_path_item)
+                            logger.error('Current path depth: %s' % current_path)
+
+            else:
+                _path = _path.replace('\\\\*', '*')
+                _path = _path.replace('%s\\' % hive.hive_root, '')
+
+                logger.error('Query Path: %s' % _path)
+                #- Wildcard NOT found
+                # Query Key
+                if action == registry_action.QUERY_KEY:
+                    # Use case - Query Key / _path recursively
                     if registry_action_settings.RECURSIVE in settings:
                         item = self.query_key_recursive(key_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
                     else:
-                        # Use case - Query given key
+                        # Use case - Query Key
                         item = self.query_key(key_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
                         if item:
                             items.extend(item)
+
+                # Query Value - Ignores the option registry_action_settings.RECURSIVE (since it applies to query key)
+                if action == registry_action.QUERY_VALUE:
+                    item = self.query_value(value_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
+                    if item:
+                        items.extend(item)
+
+        return  items
+
 
 
     """ ------------------------------------------------------------------------------------------------------------- 

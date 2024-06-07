@@ -5,6 +5,7 @@ from md.args import build_registry_handler
 from md.args import param_to_list_old as param_to_list
 
 from md.plugin import plugin
+from md.registry_parser import registry_action
 
 logger = logging.getLogger('regmagnet')
 
@@ -100,6 +101,11 @@ class parser(plugin):
         self.load_baseline()
 
     def run(self, hive, registry_handler=None, args=None) -> list:
+
+        # Debug
+        # items = self.parser.query(action=registry_action.QUERY_KEY, path='CLSID\*\LocalServer32', hive=hive, reg_handler=registry_handler)  # -> 16 items
+        # items = self.parser.query(action=registry_action.QUERY_KEY, path='CLSID\*\*', hive=hive, reg_handler=registry_handler) # -> 150 items
+        items = self.parser.query(action=registry_action.QUERY_KEY, path='*\*\*', hive=hive,reg_handler=registry_handler)  # -> 150 items
 
         if not hive:
             logger.warning('Unsupported hive file')
