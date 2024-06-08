@@ -105,7 +105,7 @@ class parser(plugin):
         # Debug
         # items = self.parser.query(action=registry_action.QUERY_KEY, path='CLSID\*\LocalServer32', hive=hive, reg_handler=registry_handler)  # -> 16 items
         # items = self.parser.query(action=registry_action.QUERY_KEY, path='CLSID\*\*', hive=hive, reg_handler=registry_handler) # -> 150 items
-        items = self.parser.query(action=registry_action.QUERY_KEY, path='*\*\*', hive=hive,reg_handler=registry_handler)  # -> 150 items
+        # return self.parser.query(action=registry_action.QUERY_KEY, path='*\\regex(.{1,})\\regex(.{2,})', hive=hive,reg_handler=registry_handler)  # -> 150 items
 
         if not hive:
             logger.warning('Unsupported hive file')

@@ -18,7 +18,7 @@ class Logger(object):
         log_console_format = logging.Formatter('%(message)s')
         console_handler.setFormatter(log_console_format)
         self.logger.addHandler(console_handler)
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
 
     def getLogger(self, LoggerName):
         return logging.getLogger(LoggerName)

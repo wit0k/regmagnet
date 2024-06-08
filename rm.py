@@ -37,6 +37,7 @@ logger = logging.getLogger('regmagnet')
     - Add CSV delimiter to parameters
     - Add a plugin that analysis the file extensions (including HKCU, and printing their handlers)
      -- Based on https://github.com/hackthebox/business-ctf-2024/blob/main/forensics/%5BHard%5D%20Counter%20Defensive/README.md
+    - Fix logging level issue
 """
 
 
