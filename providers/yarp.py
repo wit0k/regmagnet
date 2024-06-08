@@ -139,7 +139,9 @@ class yarp(registry_provider):
             return None
 
         logger.debug('Checking hive type...')
-        _hive_type = Registry.GuessHiveRole(hive_buffer)
+        _hive_type = None
+        with open(hive_file_path, 'rb') as hf:
+            _hive_type = Registry.GuessHiveRole(hf)
 
         if not _hive_type:
             if 'UsrClass'.upper() in _hive_file_name.upper():
