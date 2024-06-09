@@ -102,10 +102,12 @@ class parser(plugin):
 
     def run(self, hive, registry_handler=None, args=None) -> list:
 
-        # Debug
-        # items = self.parser.query(action=registry_action.QUERY_KEY, path='CLSID\*\LocalServer32', hive=hive, reg_handler=registry_handler)  # -> 16 items
-        # items = self.parser.query(action=registry_action.QUERY_KEY, path='CLSID\*\*', hive=hive, reg_handler=registry_handler) # -> 150 items
+        # Debug - Testing new query
+        # return self.parser.query(action=registry_action.QUERY_KEY, path='CLSID\*\LocalServer32', hive=hive, reg_handler=registry_handler)  # -> 16 items
+        # return self.parser.query(action=registry_action.QUERY_KEY, path='CLSID\*\*', hive=hive, reg_handler=registry_handler) # -> 150 items
         # return self.parser.query(action=registry_action.QUERY_KEY, path='*\\regex(.{1,})\\regex(.{2,})', hive=hive,reg_handler=registry_handler)  # -> 150 items
+        # return self.parser.query(action=registry_action.QUERY_VALUE, path='.3fr\\OpenWithProgids\\AppX9rkaq77s0jzh1tyccadx9ghba15r6t3h', hive=hive, reg_handler=registry_handler)
+        # return self.parser.query(action=registry_action.QUERY_VALUE, path='*\\OpenWithProgids\\AppX9rkaq77s0jzh1tyccadx9ghba15r6t3h', hive=hive, reg_handler=registry_handler)
 
         if not hive:
             logger.warning('Unsupported hive file')

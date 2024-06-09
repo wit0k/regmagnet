@@ -570,10 +570,11 @@ class registry_parser(object):
                             macro_pattern = regex_pattern.group(0)
                             # Proceed to get matching keys
                             matching_subkeys =  self.reg.enum_key_subkeys(key_path='\\'.join(current_path), hive=hive, reg_handler=reg_handler, key_name_pattern=key_pattern)
-
-                            if len(matching_subkeys.get('\\'.join(current_path), [])) > 0:
+                            sub_key_count = len(matching_subkeys.get('\\'.join(current_path), []))
+                            sub_key_index = 0
+                            if sub_key_count > 0:
                                 for sub_key in matching_subkeys.get('\\'.join(current_path), []):
-
+                                    sub_key_index += 1
                                     # Escape the key having same name as a wildcard or macro pattern (Edge use-case, anti-infinite loop trick)
                                     if sub_key == '*':
                                         sub_key = '\\\\*'
@@ -581,8 +582,10 @@ class registry_parser(object):
                                         sub_key = '\\\\%s' % sub_key
 
                                     _dyn_path = '\\'.join(current_path + [sub_key] + _path_elements[len(current_path)+1:])
-                                    return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth)
-
+                                    if sub_key_index >= sub_key_count:
+                                        return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth)
+                                    else:
+                                        self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth)
                             else:
                                 logger.debug('Path Not Found or Empty Key - %s' % '\\'.join(current_path + ['%s' % key_pattern]))
                                 break
@@ -591,11 +594,10 @@ class registry_parser(object):
                                 _path_item = '\\\\*'
 
                             current_path.append(_path_item)
-
+                ##- No wildcard:
             else:
                 _path = _path.replace('\\\\*', '*')
                 _path = _path.replace('%s\\' % hive.hive_root, '')
-
                 logger.debug('registry_parser.get: %s -> Depth: %s' % (path, depth))
                 #- Wildcard NOT found
                 # Query Key
@@ -615,7 +617,7 @@ class registry_parser(object):
                     if item:
                         items.extend(item)
 
-        return  items
+        return items
 
 
 
