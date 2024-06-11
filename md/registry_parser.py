@@ -535,10 +535,10 @@ class registry_parser(object):
                 s = s.replace('<escape>', '')
             return s
 
-
         for _path in path:
             ##- Wildcard is found:
-            if any([s for s in [r'regex\(', r'(?<!\\)\\\*', r'^\*\\'] if re.search(s, _path, re.IGNORECASE)]):
+            print(_path)
+            if any([s for s in [r'(?<!\\\\)regex\(', r'(?<!\\)\\\*', r'^\*\\'] if re.search(s, _path, re.IGNORECASE)]):
                 # Replace wildcard with regex equivalent, and fill the root key (if needed)
                 if _path.startswith('*\\'):
                     _path = '%s%s' % ('regex(.*)', _path[1:])
@@ -566,14 +566,28 @@ class registry_parser(object):
                         current_path.append(_path_item)
                     else:
                         if regex_pattern.group(1):
+
+                            if action == registry_action.QUERY_VALUE:
+                                if len(current_path) == len(_path_elements) - 1:
+                                    _dyn_path = '\\'.join(current_path + ['\\\\%s' % _path_elements[-1]])
+                                    return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth)
+
                             key_pattern = regex_pattern.group(1)
                             macro_pattern = regex_pattern.group(0)
                             # Proceed to get matching keys
-                            matching_subkeys =  self.reg.enum_key_subkeys(key_path='\\'.join(current_path), hive=hive, reg_handler=reg_handler, key_name_pattern=key_pattern)
+                            # ERROR need to handle the escape char ...
+                            matching_subkeys =  self.reg.enum_key_subkeys(key_path=hive.hive_root if len(current_path) == 0 else '\\'.join(current_path), hive=hive, reg_handler=reg_handler, key_name_pattern=key_pattern)
                             sub_key_count = len(matching_subkeys.get('\\'.join(current_path), []))
+                            if sub_key_count == 0:
+                                sub_key_count = len(matching_subkeys.get(hive.hive_root, []))
+                                sub_key_names = matching_subkeys.get(hive.hive_root, [])
+                            else:
+                                sub_key_names = matching_subkeys.get('\\'.join(current_path), [])
+
                             sub_key_index = 0
+
                             if sub_key_count > 0:
-                                for sub_key in matching_subkeys.get('\\'.join(current_path), []):
+                                for sub_key in sub_key_names:
                                     sub_key_index += 1
                                     # Escape the key having same name as a wildcard or macro pattern (Edge use-case, anti-infinite loop trick)
                                     if sub_key == '*':
@@ -613,9 +627,21 @@ class registry_parser(object):
 
                 # Query Value - Ignores the option registry_action_settings.RECURSIVE (since it applies to query key)
                 if action == registry_action.QUERY_VALUE:
-                    item = self.query_value(value_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
-                    if item:
-                        items.extend(item)
+
+                    if any([s for s in [r'regex\('] if re.search(s, _path, re.IGNORECASE)]):
+                        regex_pattern = re.search(pattern=r"regex\((.*)\)", string=_path, flags=re.IGNORECASE)
+                        value_pattern = regex_pattern.group(1)
+                        _dyn_path = '\\'.join(_path.split('\\')[0:-1])
+                        for reg_item in self.query_key(key_path=_dyn_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name):
+                            if reg_item.has_values:
+                                for _reg_value in reg_item.values:
+                                    if re.search(pattern=value_pattern, string=_reg_value.value_name, flags=re.IGNORECASE):
+                                        items.extend(self.query_value(value_path=_reg_value.value_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name))
+                    else:
+                        item = self.query_value(value_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
+
+                        if item:
+                            items.extend(item)
 
         return items
 

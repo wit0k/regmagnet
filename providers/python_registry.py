@@ -262,9 +262,12 @@ class python_registry(registry_provider):
                 for _subkey in key.subkeys():
                     try:
                         _subkey_name = _subkey.path()
-                    except UnicodeError as msg:
-                        _subkey_name = bytes(msg.args[1]).decode(msg.args[0], errors='ignore')
-                        logger.error('Error: %s. Failing bytes: %s. Trying to fix the key name to: %s' % (str(msg.reason), msg.args[1], _subkey_name))
+                    except (UnicodeError, UnicodeDecodeError, UnicodeEncodeError) as msg:
+                        _subkey_name = bytes(msg.object).decode(msg.args[0], errors='ignore')
+                        logger.error('enum_root_subkeys -> Unicode Error: %s [%s] -> Hive: %s -> Root: %s -> SubKey: %s' % (msg.reason, msg.args[0], hive.hive_file_path, key_path, msg.object))
+                    except Exception as msg:
+                        logger.error('Exception: %s' % str(msg))
+                        return  subkeys #_subkey_name = bytes(msg.args[1]).decode(msg.args[0], errors='ignore')
 
                     _, __, _subkey_name = _subkey_name.rpartition('\\')
 
@@ -283,6 +286,8 @@ class python_registry(registry_provider):
             return subkeys
 
     def enum_key_subkeys(self, key_path, hive, reg_handler=None, key_name_pattern=None) -> list:
+
+        if key_path is None: key_path = hive.hive_root
 
         subkeys = {}
         #  Check if both hive and key_path were given
