@@ -537,7 +537,6 @@ class registry_parser(object):
 
         for _path in path:
             ##- Wildcard is found:
-            print(_path)
             if any([s for s in [r'(?<!\\\\)regex\(', r'(?<!\\)\\\*', r'^\*\\'] if re.search(s, _path, re.IGNORECASE)]):
                 # Replace wildcard with regex equivalent, and fill the root key (if needed)
                 if _path.startswith('*\\'):
