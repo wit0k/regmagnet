@@ -109,7 +109,7 @@ class parser(plugin):
         # return self.parser.query(action=registry_action.QUERY_VALUE, path='.3fr\\OpenWithProgids\\AppX9rkaq77s0jzh1tyccadx9ghba15r6t3h', hive=hive, reg_handler=registry_handler)
         # return self.parser.query(action=registry_action.QUERY_VALUE, path='*\\OpenWithProgids\\AppX9rkaq77s0jzh1tyccadx9ghba15r6t3h', hive=hive, reg_handler=registry_handler)
         # return self.parser.query(action=registry_action.QUERY_VALUE, path='*\\OpenWithProgids\\regex(AppX[c-d][c-d]h38jxzbcberv50vxg2tg4k84kfnewn)', hive=hive, reg_handler=registry_handler)
-        return self.parser.query(action=registry_action.QUERY_VALUE, path='regex(.*)\\regex(.*)\\regex(AppX[c-d][c-d]h38jxzbcberv50vxg2tg4k84kfnewn)', hive=hive, reg_handler=registry_handler)
+        # return self.parser.query(action=registry_action.QUERY_VALUE, path='regex(.*)\\regex(.*)\\regex(AppX[c-d][c-d]h38jxzbcberv50vxg2tg4k84kfnewn)', hive=hive, reg_handler=registry_handler)
 
         if not hive:
             logger.warning('Unsupported hive file')
