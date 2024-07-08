@@ -88,7 +88,7 @@ class python_registry(registry_provider):
         _user_sid = ''
         if _hive_type == 'NTUSER':
             try:
-                _user_sid = _hive_obj.open("Software\Microsoft\Protected Storage System Provider").subkeys()[0].path()
+                _user_sid = _hive_obj.open("Software\\Microsoft\\Protected Storage System Provider").subkeys()[0].path()
             except Registry.RegistryKeyNotFoundException:
                 user_sid = ""
             except Exception:
@@ -281,7 +281,7 @@ class python_registry(registry_provider):
                 logger.error('KEY NOT FOUND: %s, %s' % (hive.hive_file_path, str(key_path)))
             except Exception as msg:
                 logger.error(
-                    '%s: Key: %s\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, key_path, str(msg)))
+                    '%s: Key: %s\\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, key_path, str(msg)))
 
             return subkeys
 
@@ -334,7 +334,7 @@ class python_registry(registry_provider):
                     continue
                 except Exception as msg:
                     logger.debug(
-                        '%s: Key: %s\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, _key, str(msg)))
+                        '%s: Key: %s\\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, _key, str(msg)))
 
             return subkeys
 
@@ -347,7 +347,7 @@ class python_registry(registry_provider):
             return None
         except Exception as msg:
             logger.debug(
-                '%s: Key: %s\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, key_path, str(msg)))
+                '%s: Key: %s\\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, key_path, str(msg)))
             return None
 
     def query_key_recursive(self, hive, key_obj, reg_handler=None, depth=0, items=None, plugin_name='') -> list:
@@ -418,7 +418,7 @@ class python_registry(registry_provider):
                     logger.debug('KEY NOT FOUND: %s, %s' % (hive.hive_file_path, _key))
                     continue
                 except Exception as msg:
-                    logger.debug('%s: Key: %s\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, _key, str(msg)))
+                    logger.debug('%s: Key: %s\\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, _key, str(msg)))
                     continue
 
                 _registry_item = registry_provider.registry_item()
@@ -485,7 +485,7 @@ class python_registry(registry_provider):
                     continue
                 except Exception as msg:
                     logger.debug(
-                        '%s: Value: %s\%s -> Unexpected error: %s' % (
+                        '%s: Value: %s\\%s -> Unexpected error: %s' % (
                         self.name, hive.hive_file_path, key_path + '\\' + value_name_pattern, str(msg)))
                     continue
 
@@ -556,7 +556,7 @@ class python_registry(registry_provider):
                     continue
                 except Exception as msg:
                     logger.debug(
-                        '%s: Value: %s\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, _value_path, str(msg)))
+                        '%s: Value: %s\\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, _value_path, str(msg)))
                     continue
 
                 _registry_item = registry_provider.registry_item()
