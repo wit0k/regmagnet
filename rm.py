@@ -22,7 +22,7 @@ logger = logging.getLogger('regmagnet')
 
 
 """ 
-    Plugins\Handlers:
+    Plugins\\Handlers:
     - forensics plugin: https://www.dfir.training/resources/downloads/windows-registry
     - -p recentdocs 
 
@@ -116,7 +116,7 @@ def main(argv):
                              help="The buffer to be imported into .reg file")
 
     script_args.add_argument("-wdp", "--winreg-destination-path", action='store', dest='destination_key_value_path',
-                             required=False, default='HKEY_CURRENT_USER\SOFTWARE\SubKey\BinaryValue',
+                             required=False, default='HKEY_CURRENT_USER\\SOFTWARE\\SubKey\\BinaryValue',
                              help="Full Windows Registry Key/Value path")
 
     args = argsparser.parse_args()
