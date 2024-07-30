@@ -801,7 +801,7 @@ class registry_provider(object):
         def get_winreg_item(self, hive_mapping, key_path, values):
 
             ret = list()
-            ret.append(u"[{prefix}\{path}]".format(prefix=hive_mapping, path=key_path))
+            ret.append(r"[{prefix}\{path}]".format(prefix=hive_mapping, path=key_path))
 
             if not isinstance(values, list):
                 values = [values]
@@ -856,15 +856,12 @@ class registry_provider(object):
             return "dword:%08x" % (item.get('value_content', ''))
 
         def _reg_bin(self, item) -> str:
-            """
-            The function exports the value to binary format supported by Windows Registry Editor Version 5.00
+            #The function exports the value to binary format supported by Windows Registry Editor Version 5.00
+            #- Example result (First line 79 chars, remaining lines <=78 chars):
+            #"test_bin"=hex:e7,e7,89,59,55,93,50,32,05,59,32,69,39,76,36,93,44,38,34,96,34,\  <- 79 chars
+            #  96,36,93,96,39,63,93,46,4e,f8,f9,f4,09,6f,96,69,6d,9f,59,92,65,40,f9,fe,f5,\   <- 78 chars
+            #  f0,dd,28,c2,4c,0a,c0,c2,06                                                     <- X remaining chars (<=78)
 
-            - Example result (First line 79 chars, remaining lines <=78 chars):
-
-            "test_bin"=hex:e7,e7,89,59,55,93,50,32,05,59,32,69,39,76,36,93,44,38,34,96,34,\  <- 79 chars
-              96,36,93,96,39,63,93,46,4e,f8,f9,f4,09,6f,96,69,6d,9f,59,92,65,40,f9,fe,f5,\   <- 78 chars
-              f0,dd,28,c2,4c,0a,c0,c2,06                                                     <- X remaining chars (<=78)
-            """
             ret = []
             s = ""
 

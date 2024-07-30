@@ -617,12 +617,12 @@ class registry_parser(object):
                 if action == registry_action.QUERY_KEY:
                     # Use case - Query Key / _path recursively
                     if registry_action_settings.RECURSIVE in settings:
-                        item = self.query_key_recursive(key_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
+                        item = self.query_key_recursive(key_path=_path, hive=hive, reg_handler=reg_handler)
                     else:
                         # Use case - Query Key
                         item = self.query_key(key_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
-                        if item:
-                            items.extend(item)
+                    if item:
+                        items.extend(item)
 
                 # Query Value - Ignores the option registry_action_settings.RECURSIVE (since it applies to query key)
                 if action == registry_action.QUERY_VALUE:
@@ -668,7 +668,7 @@ class registry_parser(object):
             if _key_path:
 
                 regex_wildcards = re.findall(pattern=r"(regex\([^\(]+\))", string=_key_path, flags=re.IGNORECASE)
-                wildcard_count = _key_path.count('\*') + _key_path.count('\*\\') + (1 if _key_path.startswith('*\\') else 0)
+                wildcard_count = _key_path.count(r'\*') + _key_path.count('\*\\') + (1 if _key_path.startswith('*\\') else 0)
 
                 # Case: The key_path does not contain any wildcard
                 if wildcard_count == 0 and len(regex_wildcards) == 0:
