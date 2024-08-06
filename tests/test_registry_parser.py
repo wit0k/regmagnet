@@ -44,41 +44,92 @@ def check_list_length(input_list: list, expected_length: int):
         return False
 
 tests = []
-tests.extend([
-    test_obj(
-        description=r'Wildcard Test - Query all sub-keys of regmagnet key (not recursive)',
-        verbose=False,
-        method=registry_action.QUERY_KEY,
-        query=r'regmagnet\*',
-        hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
-        check_fn=check_list_length,
-        check_fn_params=[6],
-    ),
-    test_obj(
-        description=r'Wildcard Test - Query all sub-keys from regmagnet\c key (recursive mode), including c',
-        verbose=False,
-        method=registry_action.QUERY_KEY,
-        query_settings=registry_action_settings.DEFAULT_KEY | registry_action_settings.RECURSIVE,
-        query=r'regmagnet\c',
-        hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
-        check_fn=check_list_length,
-        check_fn_params=[7],
-    ),
-])
+tests.extend(
+    [
+        test_obj(
+            description=r'Regex Test - Last key has a pattern',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query=r'regmagnet\c\e\regex(.*men.*)',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[1],
+        ),
+        test_obj(
+            description=r'Regex Test - Two last keys have a pattern',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query=r'regmagnet\c\*\regex(.*men.*)',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[3],
+        ),
+        test_obj(
+            description=r'Recursion Test - Query all sub-keys from regmagnet',
+            query_settings=registry_action_settings.DEFAULT_KEY | registry_action_settings.RECURSIVE,
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query=r'regmagnet',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[13],
+        ),
+        test_obj(
+            description=r'Recursion Test with Multi-Wildcard - Query all sub-keys of regmagnet +1 level down',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query_settings=registry_action_settings.DEFAULT_KEY | registry_action_settings.RECURSIVE,
+            query=r'regmagnet\*\*',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[6],
+        ),
+        test_obj(
+            description=r'Multi-Wildcard Test - Query all sub-keys of regmagnet and their 1 level down subkeys (not recursive)',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query=r'regmagnet\*\*',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[3],
+        ),
+        test_obj(
+            description=r'Wildcard Test - Query all sub-keys of regmagnet key (not recursive)',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query=r'regmagnet\*',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[6],
+        ),
+        test_obj(
+            description=r'Recursion Test - Query all sub-keys from regmagnet\c key (recursive mode), including c',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query_settings=registry_action_settings.DEFAULT_KEY | registry_action_settings.RECURSIVE,
+            query=r'regmagnet\c',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[7],
+        ),
+    ]
+)
 
 parser = registry_parser(registry_provider_name='python_registry', verbose_mode=True)
 
 for test in tests:
-
     for hive_info in parser.parse_input_files([test.hive]).values():
         # print(hive_info['hive'].hive_md5, hive_info['hive'].hive_file_path)
-        ## Pattern:  <Root_Key>\*\<KeyName>
         res = parser.query(action=registry_action.QUERY_KEY, path=test.query, hive=hive_info['hive'], reg_handler=None, settings=test.query_settings)  # -> 16 items
 
         if test.verbose == True:
             for i in res:
-                for v in i.values:
-                    print('  [-]', i.key.key_path, v.value_name, v.value_content)
+                if i.values:
+                    for v in i.values:
+                        print('  [-]', i.key.key_path, v.value_name, v.value_content)
+                else:
+                    print('  [-]', i.key.key_path, '<No Values>', '')
+
 
         if test.check(res) != True:
             print(' [-] Query: "%s" -> Settings: "%s" -> Result: "Failure" -> Description: "%s"' % (test.query, test.query_settings, test.description))

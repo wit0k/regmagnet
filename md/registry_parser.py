@@ -516,6 +516,7 @@ class registry_parser(object):
 
         # Helper functions
         def split(s: str, delimiter, escape_char='\\\\'):
+            out = []
             if escape_char in s:
                 s = s.replace(escape_char, '<escape>')
 
@@ -525,7 +526,12 @@ class registry_parser(object):
                 if p.startswith('<escape>'):
                     p = p.replace('<escape>', '')
 
-            return s
+                if '<escape>' in p:
+                    p = p.replace('<escape>', delimiter)
+
+                out.append(p)
+
+            return out
 
         def replace(s: str, old, new, escape_char='\\\\'):
             s = re.sub(r'\\\\(?!\\)', '<escape>', s)
@@ -559,7 +565,8 @@ class registry_parser(object):
 
                     regex_pattern = re.search(pattern=r"regex\((.*)\)", string=_path_item, flags=re.IGNORECASE)
                     if regex_pattern is None:
-                        if '*' == _path_item:
+                        if '*' == _path_item: # Probably not necessary
+                            print('-------------   Actually necessary !!!')
                             _path_item = '\\\\*'
 
                         current_path.append(_path_item)
@@ -569,7 +576,7 @@ class registry_parser(object):
                             if action == registry_action.QUERY_VALUE:
                                 if len(current_path) == len(_path_elements) - 1:
                                     _dyn_path = '\\'.join(current_path + ['\\\\%s' % _path_elements[-1]])
-                                    return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth)
+                                    return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings)
 
                             key_pattern = regex_pattern.group(1)
                             macro_pattern = regex_pattern.group(0)
@@ -590,15 +597,17 @@ class registry_parser(object):
                                     sub_key_index += 1
                                     # Escape the key having same name as a wildcard or macro pattern (Edge use-case, anti-infinite loop trick)
                                     if sub_key == '*':
+                                        print('-------------   Actually necessary - 2 !!!!!!')
                                         sub_key = '\\\\*'
                                     if sub_key.lower() == macro_pattern.lower():
+                                        print('-------------   Actually necessary - 2 !!!!!!')
                                         sub_key = '\\\\%s' % sub_key
 
                                     _dyn_path = '\\'.join(current_path + [sub_key] + _path_elements[len(current_path)+1:])
                                     if sub_key_index >= sub_key_count:
-                                        return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth)
+                                        return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings)
                                     else:
-                                        self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth)
+                                        self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings)
                             else:
                                 logger.debug('Path Not Found or Empty Key - %s' % '\\'.join(current_path + ['%s' % key_pattern]))
                                 break
@@ -668,7 +677,7 @@ class registry_parser(object):
             if _key_path:
 
                 regex_wildcards = re.findall(pattern=r"(regex\([^\(]+\))", string=_key_path, flags=re.IGNORECASE)
-                wildcard_count = _key_path.count(r'\*') + _key_path.count('\*\\') + (1 if _key_path.startswith('*\\') else 0)
+                wildcard_count = _key_path.count(r'\*') + _key_path.count(r'\*\\') + (1 if _key_path.startswith('*\\') else 0)
 
                 # Case: The key_path does not contain any wildcard
                 if wildcard_count == 0 and len(regex_wildcards) == 0:
@@ -818,7 +827,7 @@ class registry_parser(object):
                     _value_name = _value_path
 
                 # Determine how many times the * wildcard is used:
-                wildcard_count =_value_path.count('\*\\') + (
+                wildcard_count =_value_path.count(r'\*\\') + (
                     1 if _value_path.startswith('*\\') else 0) + (
                     1 if _value_path.endswith('\\*') else 0) + (
                     1 if _value_name == '*' and not _value_path.endswith('\\*') else 0)
@@ -1073,8 +1082,7 @@ class registry_parser(object):
 
                 else:
                     #  Cut the expansion. There are no subkeys or they do not match the subkey pattern
-                    logger.debug('Exit the expansion. There are no such subkey(s), or there is no match for the pattern: '
-                                 '%s\%s' % (_key_part, key_name_pattern))
+                    logger.debug('Exit the expansion. There are no such subkey(s), or there is no match for the pattern: "%s\\%s"' % (_key_part, key_name_pattern))
                     #_remaining_key_part = "".join(_key_parts[_key_parts.index(_key_part) + 1:])
                     #_new_key = _key_part + _remaining_key_part
                     #output_keys.append(_new_key.replace('\\\\', '\\'))
@@ -1116,7 +1124,7 @@ class registry_parser(object):
                     #  If key_path(after wildcard) contains another wildcard, do recursive call to resolve it
                     if _key_path.lower() == _new_key.lower():
                         output_keys.append(_new_key)
-                    elif '\*\\' in _new_key:
+                    elif r'\*\\' in _new_key:
                         self.expand_wildcard(_key_path=_new_key, hive=hive, reg_handler=reg_handler, output_keys=output_keys)
                     else:
                         output_keys.append(_new_key)
