@@ -599,10 +599,8 @@ class registry_parser(object):
                                     sub_key_index += 1
                                     # Escape the key having same name as a wildcard or macro pattern (Edge use-case, anti-infinite loop trick)
                                     if sub_key == '*':
-                                        print('-------------   Actually necessary - 2 !!!!!!')
                                         sub_key = '\\\\*'
                                     if sub_key.lower() == macro_pattern.lower():
-                                        print('-------------   Actually necessary - 2 !!!!!!')
                                         sub_key = '\\\\%s' % sub_key
 
                                     _dyn_path = '\\'.join(current_path + [sub_key] + _path_elements[len(current_path)+1:])
