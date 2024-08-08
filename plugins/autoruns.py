@@ -1,10 +1,12 @@
 import logging
 import argparse
 from md.plugin import plugin
+from md.registry_parser import registry_action, registry_action_settings
 
 logger = logging.getLogger('regmagnet')
 
 QUERY_VALUE_LIST = [
+    r"*\Shell\open\command\(default)",
     r"Software\Microsoft\Windows NT\CurrentVersion\Windows\Load",
     r"Microsoft\Windows NT\CurrentVersion\Windows\Load",
     r"Software\Microsoft\Windows NT\CurrentVersion\Windows\Run",
@@ -89,6 +91,7 @@ QUERY_VALUE_LIST = [
     r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\Debugger", # https://blog.malwarebytes.com/101/2015/12/an-introduction-to-image-file-execution-options/
     r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\Debugger",
     r"Microsoft\Windows\CurrentVersion\App Paths\*\(default)",
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\*\(default)",
     r"Microsoft\Windows\CurrentVersion\App Paths\wmplayer.exe\Path",
     # http://www.hexacorn.com/blog/2018/03/15/beyond-good-ol-run-key-part-73/
     r"Environment\UserInitMprLogonScript",  # http://www.hexacorn.com/blog/2014/11/14/beyond-good-ol-run-key-part-18/
@@ -135,7 +138,9 @@ QUERY_VALUE_LIST = [
 ]
 
 QUERY_KEY_LIST = [
-    r"regex(\.tmp|temp|asd|doc[a-zA-Z]{0,2}|xls[a-zA-Z]{0,2}|ppt[a-zA-Z]{0,2}.*)", # Covers unexpected extension handler in HKEY_CURRENT_USER\Software\Classes\ like .tmp  or others [UsrClass.dat required] [Research would have to be made to confirm the extensions, that shall or not usually there... might be better to update anomaly plugin or so...]
+    r"Microsoft\Windows\CurrentVersion\App Paths\*",
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\*",
+    r"regex(\\.tmp|temp|asd|doc[a-zA-Z]{0,2}|xls[a-zA-Z]{0,2}|ppt[a-zA-Z]{0,2}.*)", # Covers unexpected extension handler in HKEY_CURRENT_USER\Software\Classes\ like .tmp  or others [UsrClass.dat required] [Research would have to be made to confirm the extensions, that shall or not usually there... might be better to update anomaly plugin or so...]
     r"Select",
     r"Software\Microsoft\Windows\CurrentVersion\Run",
     r"Microsoft\Windows\CurrentVersion\Run",
@@ -256,13 +261,35 @@ class autoruns(plugin):
         #  Load required registry provider
         self.load_provider()
 
-        logger.debug('Plugin: %s -> Run(%s)' % (self.name, hive.hive_file_path))
+        logger.error('Plugin: %s -> Run(%s)' % (self.name, hive.hive_file_path))
 
         items = []
 
         registry_handler = self.choose_registry_handler(main_reg_handler=registry_handler, plugin_reg_handler=self.parsed_args.registry_handlers)
 
-        items.extend(self.parser.query_key_wd(key_path=QUERY_KEY_LIST, hive=hive, plugin_name=self.name, reg_handler=registry_handler))
-        items.extend(self.parser.query_value_wd(value_path=QUERY_VALUE_LIST, hive=hive, plugin_name=self.name, reg_handler=registry_handler))
+        #items.extend(self.parser.query_key_wd(key_path=QUERY_KEY_LIST, hive=hive, plugin_name=self.name, reg_handler=registry_handler))
+        #items.extend(self.parser.query_value_wd(value_path=QUERY_VALUE_LIST, hive=hive, plugin_name=self.name, reg_handler=registry_handler))
+
+        #def query(self, action: int, path: list, hive: registry_provider.registry_hive, reg_handler=None, settings=None, items=None, plugin_name=None, depth=None):
+
+        self.parser.query(
+            action=registry_action.QUERY_VALUE,
+            settings=registry_action_settings.DEFAULT_VALUE,
+            path=QUERY_VALUE_LIST,
+            hive=hive,
+            reg_handler=registry_handler,
+            plugin_name=self.name,
+            items=items,
+        )
+
+        self.parser.query(
+            action=registry_action.QUERY_KEY,
+            settings=registry_action_settings.DEFAULT_KEY,
+            path=QUERY_KEY_LIST,
+            hive=hive,
+            reg_handler=registry_handler,
+            plugin_name=self.name,
+            items=items,
+        )
 
         return self.return_items(items)

@@ -1,6 +1,5 @@
-from md.registry_parser import registry_parser
 from md.registry_parser import registry_action, registry_action_settings
-
+from md.registry_parser import registry_parser
 class test_obj(object):
 
     description = None
@@ -47,6 +46,69 @@ tests = []
 tests.extend(
     [
         test_obj(
+            description=r'Regex Pattern Test - Query Value in keys with a double wildcard pattern and regex',
+            verbose=False,
+            method=registry_action.QUERY_VALUE,
+            query=r'regmagnet\c\*\*\regex([a-b])',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[6],
+        ),
+        test_obj(
+            description=r'Regex Pattern Test - Root wildcard and double regex',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query=r'*\regex(.{1,})\regex(.{2,})',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[184],
+        ),
+        test_obj(
+            description=r'Escape Test - Escaped Root, space in the path',
+            verbose=False,
+            method=registry_action.QUERY_VALUE,
+            query=r'\\*\shellex\ContextMenuHandlers\ FileSyncEx\(default)',
+            hive_obj=r'hives\ctf\UsrClass.dat',
+            check_fn=check_list_length,
+            check_fn_params=[1],
+        ),
+        test_obj(
+            description=r'Regex Pattern Test - Root Regex and double regex',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query=r'regex(.*)\regex(.{1,})\regex(.{2,})',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[184],
+        ),
+        test_obj(
+            description=r'Query Value - Direct path',
+            verbose=False,
+            method=registry_action.QUERY_VALUE,
+            query=r'regmagnet\c\f\supermen\a',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[1],
+        ),
+        test_obj(
+            description=r'Query Value - Root Wildcard - Direct path',
+            verbose=False,
+            method=registry_action.QUERY_VALUE,
+            query=r'*\c\f\supermen\a',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[1],
+        ),
+        test_obj(
+            description=r'Wildcard Pattern Test - Query Value in keys with a double wildcard pattern',
+            verbose=False,
+            method=registry_action.QUERY_VALUE,
+            query=r'regmagnet\c\*\*\a',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[3],
+        ),
+        test_obj(
             description=r'Regex Test - Last key has a pattern',
             verbose=False,
             method=registry_action.QUERY_KEY,
@@ -56,7 +118,7 @@ tests.extend(
             check_fn_params=[1],
         ),
         test_obj(
-            description=r'Regex Test - Two last keys have a pattern',
+            description=r'Regex Pattern Test - Two last keys have a pattern',
             verbose=False,
             method=registry_action.QUERY_KEY,
             query=r'regmagnet\c\*\regex(.*men.*)',
@@ -115,31 +177,32 @@ tests.extend(
     ]
 )
 
-parser = registry_parser(registry_provider_name='python_registry', verbose_mode=True)
+def run(parser_name):
 
-for test in tests:
-    for hive_info in parser.parse_input_files([test.hive]).values():
-        # print(hive_info['hive'].hive_md5, hive_info['hive'].hive_file_path)
-        res = parser.query(action=registry_action.QUERY_KEY, path=test.query, hive=hive_info['hive'], reg_handler=None, settings=test.query_settings)  # -> 16 items
+    parser = registry_parser(registry_provider_name=parser_name, verbose_mode=True)
+    parser.hives = {} # A trick, don't ask why
 
-        if test.verbose == True:
-            for i in res:
-                if i.values:
-                    for v in i.values:
-                        print('  [-]', i.key.key_path, v.value_name, v.value_content)
-                else:
-                    print('  [-]', i.key.key_path, '<No Values>', '')
+    for test in tests:
+        for hive_info in parser.parse_input_files([test.hive], skip_print=True, skip_hive_cache=False).values():
+            res = parser.query(action=test.method, path=test.query, hive=hive_info['hive'], reg_handler=None,
+                               settings=test.query_settings)
+
+            if test.verbose == True:
+                for i in res:
+                    if i.values:
+                        for v in i.values:
+                            print('  [-]', i.key.key_path, v.value_name, v.value_content)
+                    else:
+                        print('  [-]', i.key.key_path, '<No Values>', '')
+
+            if test.check(res) != True:
+                print('%s\t%s\t"%s"\t%s\t"%s"' % (
+                'FAILED', parser.reg.name, test.query, test.query_settings, test.description))
+            else:
+                print('%s\t%s\t"%s"\t%s\t"%s"' % (
+                'OK', parser.reg.name, test.query, test.query_settings, test.description))
+
+for parser_name in ['yarp', 'python_registry']:
+    run(parser_name=parser_name)
 
 
-        if test.check(res) != True:
-            print(' [-] Query: "%s" -> Settings: "%s" -> Result: "Failure" -> Description: "%s"' % (test.query, test.query_settings, test.description))
-            ## Pattern:  <Root_Key>\*\<KeyName>
-            # return self.parser.query(action=registry_action.QUERY_KEY, path=r'CLSID\*\LocalServer32', hive=hive, reg_handler=registry_handler)  # -> 18 items
-            # return self.parser.query(action=registry_action.QUERY_KEY, path='CLSID\*\*', hive=hive, reg_handler=registry_handler) # -> 150 items
-            # return self.parser.query(action=registry_action.QUERY_KEY, path='*\\regex(.{1,})\\regex(.{2,})', hive=hive,reg_handler=registry_handler)  # -> 150 items
-            # return self.parser.query(action=registry_action.QUERY_VALUE, path='.3fr\\OpenWithProgids\\AppX9rkaq77s0jzh1tyccadx9ghba15r6t3h', hive=hive, reg_handler=registry_handler)
-            # return self.parser.query(action=registry_action.QUERY_VALUE, path='*\\OpenWithProgids\\AppX9rkaq77s0jzh1tyccadx9ghba15r6t3h', hive=hive, reg_handler=registry_handler)
-            # return self.parser.query(action=registry_action.QUERY_VALUE, path='*\\OpenWithProgids\\regex(AppX[c-d][c-d]h38jxzbcberv50vxg2tg4k84kfnewn)', hive=hive, reg_handler=registry_handler)
-            # return self.parser.query(action=registry_action.QUERY_VALUE, path='regex(.*)\\regex(.*)\\regex(AppX[c-d][c-d]h38jxzbcberv50vxg2tg4k84kfnewn)', hive=hive, reg_handler=registry_handler)
-        else:
-            print(' [-] Query: "%s" -> Settings: "%s" -> Result: "Success" -> Description: "%s"' % (test.query, test.query_settings, test.description))

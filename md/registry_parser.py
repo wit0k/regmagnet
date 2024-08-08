@@ -148,7 +148,7 @@ class registry_parser(object):
 
         return _provider
 
-    def load_hive(self, hive_file_path, hive_file_log=None) -> registry_provider.registry_hive:
+    def load_hive(self, hive_file_path, hive_file_log=None, skip_hive_cache=False) -> registry_provider.registry_hive:
 
         if hive_file_log is None: hive_file_log = []
 
@@ -156,7 +156,7 @@ class registry_parser(object):
             if isfile(hive_file_path):
                 _hive_md5 = get_hash(input_data=hive_file_path, hash_type='md5')
 
-                if _hive_md5 in self.hives.keys():
+                if _hive_md5 in self.hives.keys() and skip_hive_cache == False:
                     logger.debug('Loading hive: "%s" from CACHE' % hive_file_path)
                     _hive = self.hives.get(_hive_md5).get('hive')
 
@@ -252,13 +252,13 @@ class registry_parser(object):
 
         return hive_files
 
-    def parse_input_files(self, input_files):
+    def parse_input_files(self, input_files, skip_print=False, skip_hive_cache=False):
 
         hive_root_entry = {}
 
         if input_files:
 
-            print(CYELLOW + '[+] Parsing input hives' + CEND)
+            if not skip_print: print(CYELLOW + '[+] Parsing input hives' + CEND)
 
             for _hive_file in input_files:
 
@@ -281,7 +281,7 @@ class registry_parser(object):
                     hive_child_entry['hive_sig'] =  hive_sig
 
                 # Get the hive_obj
-                hive_obj = self.load_hive(hive_file_path=_hive_file)
+                hive_obj = self.load_hive(hive_file_path=_hive_file, skip_hive_cache=skip_hive_cache)
                 if hive_obj:
                     hive_child_entry['hive'] = hive_obj
                 else:
@@ -535,13 +535,15 @@ class registry_parser(object):
 
         def replace(s: str, old, new, escape_char='\\\\'):
             s = re.sub(r'\\\\(?!\\)', '<escape>', s)
-            s = s.replace('%s' % old, '%s' % new)
+            while old in s:
+                s = s.replace('%s' % old, '%s' % new)
 
             if '<escape>' in s:
                 s = s.replace('<escape>', '')
             return s
 
         for _path in path:
+
             ##- Wildcard is found:
             if any([s for s in [r'(?<!\\\\)regex\(', r'(?<!\\)\\\*', r'^\*\\'] if re.search(s, _path, re.IGNORECASE)]):
                 # Replace wildcard with regex equivalent, and fill the root key (if needed)
@@ -629,7 +631,12 @@ class registry_parser(object):
                         item = self.query_key_recursive(key_path=_path, hive=hive, reg_handler=reg_handler)
                     else:
                         # Use case - Query Key
-                        item = self.query_key(key_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
+                        try:
+                            item = self.query_key(key_path=_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name)
+                        except Exception as msg:
+                            logger.error('Error: Unable to QueryKey: "%s" - Exception: %s' % (_path, str(msg)))
+                            item = None
+
                     if item:
                         items.extend(item)
 
@@ -640,6 +647,9 @@ class registry_parser(object):
                         regex_pattern = re.search(pattern=r"regex\((.*)\)", string=_path, flags=re.IGNORECASE)
                         value_pattern = regex_pattern.group(1)
                         _dyn_path = '\\'.join(_path.split('\\')[0:-1])
+                        _dyn_path = _dyn_path[0:-2] if _dyn_path.endswith('\\\\') else _dyn_path
+                        _dyn_path = _dyn_path[0:-1] if _dyn_path.endswith('\\') else _dyn_path
+
                         for reg_item in self.query_key(key_path=_dyn_path, hive=hive, reg_handler=reg_handler, plugin_name=plugin_name):
                             if reg_item.has_values:
                                 for _reg_value in reg_item.values:

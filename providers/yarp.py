@@ -170,7 +170,7 @@ class yarp(registry_provider):
         _user_sid = ''
         if _hive_type == 'NTUSER':
             try:
-                key = _hive_obj.find_key("Software\Microsoft\Protected Storage System Provider").subkeys()
+                key = _hive_obj.find_key("Software\\Microsoft\\Protected Storage System Provider").subkeys()
                 key = key.__next__()
 
                 if key:
@@ -332,7 +332,7 @@ class yarp(registry_provider):
 
             except Exception as msg:
                 logger.debug(
-                    '%s: Key: %s\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, key_path, str(msg)))
+                    '%s: Key: %s\\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, key_path, str(msg)))
 
             return subkeys
 
@@ -354,7 +354,16 @@ class yarp(registry_provider):
                 logger.debug('ENUMERATE: %s, %s' % (hive.hive_file_path, _key))
 
                 try:
-                    key = hive.hive_obj.find_key(_key) if _key.lower() != hive.hive_root.lower() else hive.hive_obj.root_key()
+                    # key = hive.hive_obj.find_key(_key) if _key.lower() != hive.hive_root.lower() else hive.hive_obj.root_key()
+
+                    if _key.lower() != hive.hive_root.lower():
+                        if _key.startswith('%s\\' % hive.hive_root) or _key.startswith('%s\\\\' % hive.hive_root):
+                            # Strip unnecessary root key
+                            _key = _key.replace('%s\\\\\\' % hive.hive_root, '')
+                            _key = _key.replace('%s\\' % hive.hive_root, '')
+                        key = hive.hive_obj.find_key(_key)
+                    else:
+                        key = hive.hive_obj.root_key()
 
                     if key is None:
                         logger.debug('KEY NOT FOUND: %s, %s' % (hive.hive_file_path, _key))
@@ -377,7 +386,7 @@ class yarp(registry_provider):
 
                 except Exception as msg:
                     logger.debug(
-                        'EnumSubKeys: %s: Key: %s\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, _key, str(msg)))
+                        'EnumSubKeys: %s: Key: %s\\%s -> Unexpected error: %s' % (self.name, hive.hive_file_path, _key, str(msg)))
 
             return subkeys
 
