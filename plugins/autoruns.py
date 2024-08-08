@@ -138,19 +138,19 @@ QUERY_VALUE_LIST = [
 ]
 
 QUERY_KEY_LIST = [
+    r"Software\Microsoft\Windows\CurrentVersion\Run",
+    r"Software\Microsoft\Windows\CurrentVersion\Run\*",  # http://www.silentrunners.org/launchpoints.html
     r"Microsoft\Windows\CurrentVersion\App Paths\*",
     r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\*",
     r"regex(\\.tmp|temp|asd|doc[a-zA-Z]{0,2}|xls[a-zA-Z]{0,2}|ppt[a-zA-Z]{0,2}.*)", # Covers unexpected extension handler in HKEY_CURRENT_USER\Software\Classes\ like .tmp  or others [UsrClass.dat required] [Research would have to be made to confirm the extensions, that shall or not usually there... might be better to update anomaly plugin or so...]
     r"Select",
-    r"Software\Microsoft\Windows\CurrentVersion\Run",
     r"Microsoft\Windows\CurrentVersion\Run",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Run",  # Might not exist
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Run",
-    r"Software\Microsoft\Windows\CurrentVersion\Run\*",  # http://www.silentrunners.org/launchpoints.html
     r"Microsoft\Windows\CurrentVersion\Run\*",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Run\*",
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Run",  # Might not exist
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Run\*",  # Might not exist
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run",
     r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run\*",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Run",
     r"Software\Microsoft\Windows NT\CurrentVersion\Run\*",
     r"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
     r"Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
@@ -273,9 +273,9 @@ class autoruns(plugin):
         #def query(self, action: int, path: list, hive: registry_provider.registry_hive, reg_handler=None, settings=None, items=None, plugin_name=None, depth=None):
 
         self.parser.query(
-            action=registry_action.QUERY_VALUE,
-            settings=registry_action_settings.DEFAULT_VALUE,
-            path=QUERY_VALUE_LIST,
+            action=registry_action.QUERY_KEY,
+            settings=registry_action_settings.DEFAULT_KEY,
+            path=QUERY_KEY_LIST,
             hive=hive,
             reg_handler=registry_handler,
             plugin_name=self.name,
@@ -283,9 +283,9 @@ class autoruns(plugin):
         )
 
         self.parser.query(
-            action=registry_action.QUERY_KEY,
-            settings=registry_action_settings.DEFAULT_KEY,
-            path=QUERY_KEY_LIST,
+            action=registry_action.QUERY_VALUE,
+            settings=registry_action_settings.DEFAULT_VALUE,
+            path=QUERY_VALUE_LIST,
             hive=hive,
             reg_handler=registry_handler,
             plugin_name=self.name,
