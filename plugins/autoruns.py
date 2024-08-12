@@ -7,25 +7,53 @@ logger = logging.getLogger('regmagnet')
 
 QUERY_VALUE_LIST = [
     r"*\Shell\open\command\(default)",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Windows\Load",
-    r"Microsoft\Windows NT\CurrentVersion\Windows\Load",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Windows\Run",
-    r"Microsoft\Windows NT\CurrentVersion\Windows\Run",
-    r"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
-    r"Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
-    r"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run\*",
-    r"Microsoft\Windows\CurrentVersion\Policies\Explorer\Run\*",
-    r"Software\Microsoft\Windows\CurrentVersion\Run\COM+",
-    r"Microsoft\Windows\CurrentVersion\Run\COM+",
+    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_LOCAL_MACHINE
+    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_LOCAL_MACHINE
+    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_LOCAL_MACHINE
+    r"ControlSet001\Control\ContentIndex\Language\English_UK\DLLOverridePat",
+    r"ControlSet001\Control\Lsa\Authentication Packages",
+    r"ControlSet001\Control\Lsa\OSConfig\Security Packages",
+    r"ControlSet001\Control\Lsa\Security Packages",
+    r"ControlSet001\Control\Print\Monitors\*\Driver",
     r"ControlSet001\Control\SafeBoot\AlternateShell",
+    r"ControlSet001\services\TermService\Parameters\ServiceDll",  # https://twitter.com/SBousseaden/status/1090411586139885568?s=03
+    r"ControlSet002\Control\ContentIndex\Language\English_US\DLLOverridePat",
+    r"ControlSet002\Control\Lsa\Authentication Packages",
+    r"ControlSet002\Control\Lsa\OSConfig\Security Packages",
+    r"ControlSet002\Control\Lsa\Security Packages",
+    r"ControlSet002\Control\Print\Monitors\*\Driver",
     r"ControlSet002\Control\SafeBoot\AlternateShell",
+    r"ControlSet002\services\TermService\Parameters\ServiceDll",
+    r"ControlSet003\Control\ContentIndex\Language\Neutral\DLLOverridePath",
+    r"ControlSet003\Control\Lsa\Authentication Packages",
+    r"ControlSet003\Control\Lsa\OSConfig\Security Packages",
+    r"ControlSet003\Control\Lsa\Security Packages",
+    r"ControlSet003\Control\Print\Monitors\*\Driver",
     r"ControlSet003\Control\SafeBoot\AlternateShell",
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\System",  # https://attack.mitre.org/techniques/T1547/004/, # Manual_CS.txt (#ContiLeaks)
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Shell",
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\UIHost",
+    r"ControlSet003\services\TermService\Parameters\ServiceDll",
+    r"Environment\UserInitLogonScript",
+    r"Environment\UserInitLogonServer",
+    r"Environment\UserInitMprLogonScript",  # http://www.hexacorn.com/blog/2014/11/14/beyond-good-ol-run-key-part-18/
+    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_CURRENT_USER
+    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_CURRENT_USER
+    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_CURRENT_USER
+    r"Microsoft\Active Setup\Installed Components\*\StubPath",
+    r"Microsoft\Office test\Special\Perf", # https://attack.mitre.org/techniques/T1137/002/, # Manual_CS.txt (#ContiLeaks)
+    r"Microsoft\Office\*\*\Options\OPEN",  # https://twitter.com/william_knows/status/909788804696944642/photo/1
+    r"Microsoft\PushRouter\Test\TestDllPath2",  # http://www.hexacorn.com/blog/2018/10/10/beyond-good-ol-run-key-part-91/
+    r"Microsoft\Windows NT\CurrentVersion\AeDebugProtected\ProtectedDebugger",  # http://www.hexacorn.com/blog/2019/10/11/beyond-good-ol-run-key-part-119/
+    r"Microsoft\Windows NT\CurrentVersion\ICM\Calibration\DisplayCalibrator",  # https://twitter.com/James_inthe_box/status/1084982201496657921?s=03
+    r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\Debugger", # https://blog.malwarebytes.com/101/2015/12/an-introduction-to-image-file-execution-options/
+    r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\GlobalFlag", # https://oddvar.moe/2018/04/10/persistence-using-globalflags-in-image-file-execution-options-hidden-from-autoruns-exe/
+    r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\VerifierDlls", # http://cybellum.com/doubleagentzero-day-code-injection-and-persistence-technique/
+    r"Microsoft\Windows NT\CurrentVersion\IniFileMapping\system.ini\boot",
+    r"Microsoft\Windows NT\CurrentVersion\Ports",  # https://windows-internals.com/printdemon-cve-2020-1048/
+    r"Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*\MonitorProcess", # https://attack.mitre.org/techniques/T1546/012/, # Manual_CS.txt (#ContiLeaks) .. This must be enabled to make it work reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*" /v ReportingMode /t REG_DWORD /d 1
+    r"Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*\MonitorProcess", # https://oddvar.moe/2018/04/10/persistence-using-globalflags-in-image-file-execution-options-hidden-from-autoruns-exe/
+    r"Microsoft\Windows NT\CurrentVersion\Windows\AppInit_DLLs",
+    r"Microsoft\Windows NT\CurrentVersion\Windows\Load",
+    r"Microsoft\Windows NT\CurrentVersion\Windows\Run",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\*\DLLName",
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Lock",
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logoff",
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logon",
@@ -35,29 +63,28 @@ QUERY_VALUE_LIST = [
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Startup",
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StopScreenSaver",
     r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Unlock",
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\*\DLLName",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\System",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\UIHost",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Lock",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logoff",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logon",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Shutdown",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StartScreenSaver",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StartShell",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Startup",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StopScreenSaver",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Unlock",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\*\DLLName",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\System",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\UIHost",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Shell",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\System",  # https://attack.mitre.org/techniques/T1547/004/, # Manual_CS.txt (#ContiLeaks)
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\UIHost",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
+    r"Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
+    r"Microsoft\Windows\CurrentVersion\Policies\Explorer\Run\*",
+    r"Microsoft\Windows\CurrentVersion\Run\COM+",
+    r"Microsoft\Windows\CurrentVersion\ShellServiceObjectDelayLoad",  # Need to check if value or a key
+    r"regex(ControlSet00[0-4])\Control\LsaExtensionConfig\LsaSrv\Extensions", # https://twitter.com/0gtweet/status/1476286368385019906?t=hfWwMUjghwgeIFr9JuGtWQ&s=03
+    r"regex(ControlSet00[0-4])\Services\regex(.*)\NetworkProvider\ProviderPath",  # https://github.com/gtworek/PSBits/tree/master/PasswordStealing/NPPSpy"
+    r"Software\Classes\CLSID\*\InprocServer32", # UsrClass or NTUSER -> https://blog.yaxser.io/posts/task-scheduler-com-handler
+    r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_USERS\.DEFAULT
+    r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_USERS\.DEFAULT
+    r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_USERS\.DEFAULT
+    r"Software\Microsoft\HtmlHelp Author\location", # http://www.hexacorn.com/blog/2018/04/22/beyond-good-ol-run-key-part-76/
+    r"Software\Microsoft\Office test\Special\Perf", # https://attack.mitre.org/techniques/T1137/002/, # Manual_CS.txt (#ContiLeaks)
+    r"Software\Microsoft\Office\*\Common\AdditionalActionsDLL",
+    r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\IniFileMapping\system.ini\boot",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Windows\Load",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Windows\Run",
     r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Lock",
     r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logoff",
     r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logon",
@@ -67,172 +94,151 @@ QUERY_VALUE_LIST = [
     r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Startup",
     r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StopScreenSaver",
     r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Unlock",
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\*\DLLName",
-    r"Microsoft\Windows\CurrentVersion\ShellServiceObjectDelayLoad",  # Need to check if value or a key
-    r"Wow6432Node\Microsoft\Active Setup\Installed Components\*\StubPath",
-    r"Microsoft\Active Setup\Installed Components\*\StubPath",
-    r"Microsoft\Office\*\*\Options\OPEN",  # https://twitter.com/william_knows/status/909788804696944642/photo/1
-    r"Software\Microsoft\Office\*\Common\AdditionalActionsDLL",
-    r"Microsoft\Windows NT\CurrentVersion\Windows\AppInit_DLLs",
-    r"ControlSet001\Control\Lsa\Authentication Packages",
-    r"ControlSet002\Control\Lsa\Authentication Packages",
-    r"ControlSet003\Control\Lsa\Authentication Packages",
-    r"ControlSet001\Control\Lsa\Security Packages",
-    r"ControlSet002\Control\Lsa\Security Packages",
-    r"ControlSet003\Control\Lsa\Security Packages",
-    r"ControlSet001\Control\Lsa\OSConfig\Security Packages",
-    r"ControlSet002\Control\Lsa\OSConfig\Security Packages",
-    r"ControlSet003\Control\Lsa\OSConfig\Security Packages",
-    r"ControlSet001\Control\Print\Monitors\*\Driver",
-    r"ControlSet002\Control\Print\Monitors\*\Driver",
-    r"ControlSet003\Control\Print\Monitors\*\Driver",
-    r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\VerifierDlls", # http://cybellum.com/doubleagentzero-day-code-injection-and-persistence-technique/
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\VerifierDlls",
-    r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\Debugger", # https://blog.malwarebytes.com/101/2015/12/an-introduction-to-image-file-execution-options/
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\Debugger",
-    r"Microsoft\Windows\CurrentVersion\App Paths\*\(default)",
-    r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\*\(default)",
-    r"Microsoft\Windows\CurrentVersion\App Paths\wmplayer.exe\Path",
-    # http://www.hexacorn.com/blog/2018/03/15/beyond-good-ol-run-key-part-73/
-    r"Environment\UserInitMprLogonScript",  # http://www.hexacorn.com/blog/2014/11/14/beyond-good-ol-run-key-part-18/
-    r"Environment\UserInitLogonServer",
-    r"Environment\UserInitLogonScript",
-    r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\GlobalFlag",
-    # https://oddvar.moe/2018/04/10/persistence-using-globalflags-in-image-file-execution-options-hidden-from-autoruns-exe/
-    r"Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*\MonitorProcess",
-    # https://oddvar.moe/2018/04/10/persistence-using-globalflags-in-image-file-execution-options-hidden-from-autoruns-exe/
-    r"Software\Microsoft\HtmlHelp Author\location",
-    # http://www.hexacorn.com/blog/2018/04/22/beyond-good-ol-run-key-part-76/
-    r"Microsoft\PushRouter\Test\TestDllPath2",  # http://www.hexacorn.com/blog/2018/10/10/beyond-good-ol-run-key-part-91/
-    r"Microsoft\Windows NT\CurrentVersion\ICM\Calibration\DisplayCalibrator",  # https://twitter.com/James_inthe_box/status/1084982201496657921?s=03
-    r"ControlSet001\services\TermService\Parameters\ServiceDll",  # https://twitter.com/SBousseaden/status/1090411586139885568?s=03
-    r"ControlSet002\services\TermService\Parameters\ServiceDll",
-    r"ControlSet003\services\TermService\Parameters\ServiceDll",
-    r"ControlSet001\Control\ContentIndex\Language\English_UK\DLLOverridePat",
-    r"ControlSet002\Control\ContentIndex\Language\English_US\DLLOverridePat",
-    r"ControlSet003\Control\ContentIndex\Language\Neutral\DLLOverridePath",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\System",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\UIHost",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
+    r"Software\Microsoft\Windows\CurrentVersion\Run\COM+",
     r"System\*\*\ImagePath",  # https://www.tarlogic.com/en/blog/abusing-seloaddriverprivilege-for-privilege-escalation/,
-    r'Microsoft\Windows\Windows Error Reporting\Hangs\Debugger',  # http://www.hexacorn.com/blog/2019/09/20/beyond-good-ol-run-key-part-116/
-    r"Microsoft\Windows NT\CurrentVersion\AeDebugProtected\ProtectedDebugger",  # http://www.hexacorn.com/blog/2019/10/11/beyond-good-ol-run-key-part-119/
-    r"Microsoft\Windows NT\CurrentVersion\Ports",  # https://windows-internals.com/printdemon-cve-2020-1048/
-    r"regex(ControlSet00[0-4])\Services\regex(.*)\NetworkProvider\ProviderPath",  # https://github.com/gtworek/PSBits/tree/master/PasswordStealing/NPPSpy"
-    r"Microsoft\Windows NT\CurrentVersion\Image File Execution Options\regex(.*)\VerifierDlls", # https://cybellum.com/doubleagentzero-day-code-injection-and-persistence-technique/
-    r"regex(ControlSet00[0-4])\Control\LsaExtensionConfig\LsaSrv\Extensions", # https://twitter.com/0gtweet/status/1476286368385019906?t=hfWwMUjghwgeIFr9JuGtWQ&s=03
-    r"Software\Microsoft\Office test\Special\Perf", # https://attack.mitre.org/techniques/T1137/002/, # Manual_CS.txt (#ContiLeaks)
-    r"Microsoft\Office test\Special\Perf", # https://attack.mitre.org/techniques/T1137/002/, # Manual_CS.txt (#ContiLeaks)
+    r"Wow6432Node\Microsoft\Active Setup\Installed Components\*\StubPath",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\Debugger",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\*\VerifierDlls",
     r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Windows\AppInit_DLLs", # https://attack.mitre.org/techniques/T1546/010/, # Manual_CS.txt (#ContiLeaks)
-    r"Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*\MonitorProcess", # https://attack.mitre.org/techniques/T1546/012/, # Manual_CS.txt (#ContiLeaks) .. This must be enabled to make it work reg add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit\*" /v ReportingMode /t REG_DWORD /d 1
-    r"Software\Classes\CLSID\*\InprocServer32", # UsrClass or NTUSER -> https://blog.yaxser.io/posts/task-scheduler-com-handler 
-    r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\IniFileMapping\system.ini\boot",
-    r"Microsoft\Windows NT\CurrentVersion\IniFileMapping\system.ini\boot",
-    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_CURRENT_USER
-    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_CURRENT_USER
-    r"Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_CURRENT_USER
-    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_LOCAL_MACHINE
-    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_LOCAL_MACHINE
-    r"Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_LOCAL_MACHINE
-    r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_USERS\.DEFAULT
-    r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_USERS\.DEFAULT
-    r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_USERS\.DEFAULT
-
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\*\DLLName",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Lock",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logoff",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Logon",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Shutdown",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StartScreenSaver",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StartShell",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Startup",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\StopScreenSaver",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Notify\Unlock",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\System",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\UIHost",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\Userinit",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Winlogon\VMApplet",
+    r'Microsoft\Windows\Windows Error Reporting\Hangs\Debugger',  # http://www.hexacorn.com/blog/2019/09/20/beyond-good-ol-run-key-part-116/
 ]
 
 QUERY_KEY_LIST = [
-    r"Software\Microsoft\Windows\CurrentVersion\Run",
-    r"Software\Microsoft\Windows\CurrentVersion\Run\*",  # http://www.silentrunners.org/launchpoints.html
+    r"CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open\command",
+    # UsrClass.dat is needed. https://www.hexacorn.com/blog/2018/05/28/beyond-good-ol-run-key-part-78-2/
+    r"Control Panel\Desktop\Scrnsave.exe",
+    r"ControlSet001\Control\Lsa\Notification Packages",
+    r"ControlSet001\Control\Session Manager\AppCertDlls",
+    r"ControlSet001\Control\Session Manager\BootExecute",
+    # https://www2.isye.gatech.edu/~mgoetsch/cali/Windows%20Configuration/Windows%20Configuration%20Html/ModifyingDefaultBootupRunofCHKDSK_F.htm
+    r"ControlSet001\Control\Terminal Server\Utilities\query",
+    # https://twitter.com/0gtweet/status/1607690354068754433?t=FUq3UZnWsEPl_L0La-pa8g&s=03
+    r"ControlSet002\Control\Lsa\Notification Packages",
+    r"ControlSet002\Control\Session Manager\AppCertDlls",
+    r"ControlSet002\Control\Session Manager\BootExecute",
+    r"ControlSet002\Control\Terminal Server\Utilities\query",
+    r"ControlSet003\Control\Lsa\Notification Packages",  # https://attack.mitre.org/wiki/Technique/T1174
+    r"ControlSet003\Control\Session Manager\AppCertDlls",
+    r"ControlSet003\Control\Session Manager\BootExecute",
+    r"ControlSet003\Control\Terminal Server\Utilities\query",
+    r"Microsoft\NetSh",  # https://attack.mitre.org/wiki/Technique/T1128
+    r"Microsoft\NetSh",  # https://attack.mitre.org/techniques/T1546/007/, # Manual_CS.txt (#ContiLeaks)
+    r"Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Custom",
+    r"Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Custom\*",
+    # https://blog.f-secure.com/hunting-for-application-shim-databases/
+    r"Microsoft\Windows NT\CurrentVersion\AppCompatFlags\InstalledSDB",
+    r"Microsoft\Windows NT\CurrentVersion\AppCompatFlags\InstalledSDB\*",
+    # https://blog.f-secure.com/hunting-for-application-shim-databases/
+    r"Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run",
+    r"Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce",
+    r"Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList",
+    # https://attack.mitre.org/techniques/T1564/002/, # Manual_CS.txt (#ContiLeaks) /v attacker /t REG_DWORD /d 0
+    r"Microsoft\Windows NT\CurrentVersion\WOW\boot",
+    r"Microsoft\Windows\CurrentVersion\App Paths",
+    # https://learn.microsoft.com/en-us/windows/win32/shell/app-registration (No need for recursive)
     r"Microsoft\Windows\CurrentVersion\App Paths\*",
-    r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\*",
-    r"regex(\\.tmp|temp|asd|doc[a-zA-Z]{0,2}|xls[a-zA-Z]{0,2}|ppt[a-zA-Z]{0,2}.*)", # Covers unexpected extension handler in HKEY_CURRENT_USER\Software\Classes\ like .tmp  or others [UsrClass.dat required] [Research would have to be made to confirm the extensions, that shall or not usually there... might be better to update anomaly plugin or so...]
-    r"Select",
+    # http://www.hexacorn.com/blog/2018/03/15/beyond-good-ol-run-key-part-73/
+    r"Microsoft\Windows\CurrentVersion\explorer\ShellExecuteHooks",
+    r"Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Common Startup",
+    r"Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Startup",
+    r"Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
+    r"Microsoft\Windows\CurrentVersion\Policies\System",
     r"Microsoft\Windows\CurrentVersion\Run",
     r"Microsoft\Windows\CurrentVersion\Run\*",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Run",  # Might not exist
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Run\*",  # Might not exist
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run",
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run\*",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Run",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Run\*",
-    r"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
-    r"Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
-    r"Software\Microsoft\Windows\CurrentVersion\RunOnce",
     r"Microsoft\Windows\CurrentVersion\RunOnce",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce",
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce",
-    r"Microsoft\Windows\CurrentVersion\RunOnceEx",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx",
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx",
-    r"Software\Microsoft\Windows\CurrentVersion\RunOnceEx",
-    r"Software\Microsoft\Windows\CurrentVersion\RunOnce\*",  # http://www.silentrunners.org/launchpoints.html
     r"Microsoft\Windows\CurrentVersion\RunOnce\*",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce\*",
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce\*",
+    r"Microsoft\Windows\CurrentVersion\RunOnceEx",
     r"Microsoft\Windows\CurrentVersion\RunOnceEx\*",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx\*",
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx\*",
-    # https://oddvar.moe/2018/03/21/persistence-using-runonceex-hidden-from-autoruns-exe/
-    r"Software\Microsoft\Windows\CurrentVersion\RunOnceEx\*",
-    r"Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce",
-    r"Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce",
-    r"Software\Microsoft\Windows\CurrentVersion\RunServices",
     r"Microsoft\Windows\CurrentVersion\RunServices",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices",
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices",
-    r"Software\Microsoft\Windows\CurrentVersion\RunServicesOnce",
     r"Microsoft\Windows\CurrentVersion\RunServicesOnce",
-    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce",
-    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce",
-    r"Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run",
-    r"Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run",
-    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run",
-    r"Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run",
-    r"Microsoft\Windows NT\CurrentVersion\WOW\boot",
-    r"Software\Microsoft\Windows\CurrentVersion\Policies\System",
-    r"Microsoft\Windows\CurrentVersion\Policies\System",
-    r"ControlSet001\Control\Session Manager\AppCertDlls",
-    r"ControlSet002\Control\Session Manager\AppCertDlls",
-    r"ControlSet003\Control\Session Manager\AppCertDlls",
-    r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Common Startup",
-    r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Common Startup",
-    r"Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Common Startup",
-    r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Startup",
-    r"Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Startup",
-    r"Microsoft\Windows\CurrentVersion\explorer\ShellExecuteHooks",
-    r"Control Panel\Desktop\Scrnsave.exe",
-    r"Microsoft\Windows NT\CurrentVersion\AppCompatFlags\InstalledSDB",
-    r"Microsoft\NetSh",  # https://attack.mitre.org/wiki/Technique/T1128
-    r"Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Custom\*",
-    r"Software\Microsoft\Office test\Special\Perf\*",
-    r"Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules",
-    # https://msdn.microsoft.com/en-us/library/windows/desktop/dd408167(v=vs.85).aspx
     r"Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules",
-    # https://msdn.microsoft.com/en-us/library/windows/desktop/dd408167(v=vs.85).aspx
+    r"regex(\\.tmp|temp|asd|doc[a-zA-Z]{0,2}|xls[a-zA-Z]{0,2}|ppt[a-zA-Z]{0,2}.*)",
+    # Covers unexpected extension handler in HKEY_CURRENT_USER\Software\Classes\ like .tmp  or others [UsrClass.dat required] [Research would have to be made to confirm the extensions, that shall or not usually there... might be better to update anomaly plugin or so...]
+    r"Select",
+    r"Software\Classes\ActivatableClasses\Package\*\DebugInformation"
+    r"Software\Classes\ActivatableClasses\Package\*\DebugInformation\*",
+    # https://oddvar.moe/2018/09/06/persistence-using-universal-windows-platform-apps-appx/
+    r"Software\Microsoft\Windows\CurrentVersion\PackagedAppXDebug",
+    # https://oddvar.moe/2018/09/06/persistence-using-universal-windows-platform-apps-appx/
+    r"Software\Microsoft\Windows\CurrentVersion\PackagedAppXDebug\*",
     r"Software\Microsoft\Office Test\Special\Perf",
     # http://www.hexacorn.com/blog/2014/04/16/beyond-good-ol-run-key-part-10/
-    r"ControlSet001\Control\Lsa\Notification Packages",
-    r"ControlSet002\Control\Lsa\Notification Packages",
-    r"ControlSet003\Control\Lsa\Notification Packages", # https://attack.mitre.org/wiki/Technique/T1174
-    r'Microsoft\Windows NT\CurrentVersion\WirelessDocking\DockingProviderDLLs',
-    r"Software\Classes\ActivatableClasses\Package\*\DebugInformation\*",  # https://oddvar.moe/2018/09/06/persistence-using-universal-windows-platform-apps-appx/
-    r"Software\Microsoft\Windows\CurrentVersion\PackagedAppXDebug\*",
-    r'Microsoft\Windows\CurrentVersion\Installer\RunOnceEntries',
-    r'Wow6432Node\Microsoft\Windows\CurrentVersion\Installer\RunOnceEntries',
-    r'Software\Microsoft\Run' #  https://brica.de/alerts/alert/public/1250345/evading-av-with-javascript-obfuscation/,
-    r'Software\Microsoft\Microsoft SQL Server\*\Tools\Shell\Addins',
+    r"Software\Microsoft\Office test\Special\Perf\*",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Run",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Run\*",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run",
+    r"Software\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce",
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths",
+    # https://learn.microsoft.com/en-us/windows/win32/shell/app-registration (No need for recursive)
+    r"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\*",
+    # http://www.hexacorn.com/blog/2018/03/15/beyond-good-ol-run-key-part-73/
+    r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Common Startup",
+    r"Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders\Startup",
+    r"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
+    r"Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run\*",
+    r"Software\Microsoft\Windows\CurrentVersion\Policies\System",
+    r"Software\Microsoft\Windows\CurrentVersion\Run",
+    r"Software\Microsoft\Windows\CurrentVersion\Run\*",  # http://www.silentrunners.org/launchpoints.html
+    r"Software\Microsoft\Windows\CurrentVersion\RunOnce",
+    r"Software\Microsoft\Windows\CurrentVersion\RunOnce\*",  # http://www.silentrunners.org/launchpoints.html
+    r"Software\Microsoft\Windows\CurrentVersion\RunOnceEx",
+    r"Software\Microsoft\Windows\CurrentVersion\RunOnceEx\*",
+    r"Software\Microsoft\Windows\CurrentVersion\RunServices",
+    r"Software\Microsoft\Windows\CurrentVersion\RunServicesOnce",
+    r"Software\Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules",
+    # https://msdn.microsoft.com/en-us/library/windows/desktop/dd408167(v=vs.85).aspx # https://msdn.microsoft.com/en-us/library/windows/desktop/dd408167(v=vs.85).aspx
+    r"Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run",
+    r"Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce",
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run",
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Run\*",
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce",
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce\*",
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx",
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx\*",
+    # https://oddvar.moe/2018/03/21/persistence-using-runonceex-hidden-from-autoruns-exe/
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices",
+    r"Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run",
+    r"Wow6432Node\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce",
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run",
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Run",  # Might not exist
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\Run\*",  # Might not exist
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce",
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce\*",
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx",
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx\*",
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunServices",
+    r"Wow6432Node\Microsoft\Windows\CurrentVersion\RunServicesOnce",
     r'Microsoft\Microsoft SQL Server\*\Tools\Shell\Addins',
-    r"Microsoft\Windows NT\CurrentVersion\Winlogon\SpecialAccounts\UserList", # https://attack.mitre.org/techniques/T1564/002/, # Manual_CS.txt (#ContiLeaks) /v attacker /t REG_DWORD /d 0
-    r"Microsoft\NetSh", # https://attack.mitre.org/techniques/T1546/007/, # Manual_CS.txt (#ContiLeaks)
-    r"ControlSet001\Control\Terminal Server\Utilities\query", # https://twitter.com/0gtweet/status/1607690354068754433?t=FUq3UZnWsEPl_L0La-pa8g&s=03
-    r"ControlSet002\Control\Terminal Server\Utilities\query",
-    r"ControlSet003\Control\Terminal Server\Utilities\query",
-    r"CLSID\{645FF040-5081-101B-9F08-00AA002F954E}\shell\open\command", # UsrClass.dat is needed. https://www.hexacorn.com/blog/2018/05/28/beyond-good-ol-run-key-part-78-2/
-    r"ControlSet001\Control\Session Manager\BootExecute", # https://www2.isye.gatech.edu/~mgoetsch/cali/Windows%20Configuration/Windows%20Configuration%20Html/ModifyingDefaultBootupRunofCHKDSK_F.htm
-    r"ControlSet002\Control\Session Manager\BootExecute",
-    r"ControlSet003\Control\Session Manager\BootExecute",
-    ]
+    r'Microsoft\Windows NT\CurrentVersion\WirelessDocking\DockingProviderDLLs',
+    r'Microsoft\Windows\CurrentVersion\Installer\RunOnceEntries',
+    r'Software\Microsoft\Microsoft SQL Server\*\Tools\Shell\Addins',
+    r'Software\Microsoft\Run'  # https://brica.de/alerts/alert/public/1250345/evading-av-with-javascript-obfuscation/,
+    r'Wow6432Node\Microsoft\Windows\CurrentVersion\Installer\RunOnceEntries',
+]
 
 
 class autoruns(plugin):
@@ -269,8 +275,6 @@ class autoruns(plugin):
 
         #items.extend(self.parser.query_key_wd(key_path=QUERY_KEY_LIST, hive=hive, plugin_name=self.name, reg_handler=registry_handler))
         #items.extend(self.parser.query_value_wd(value_path=QUERY_VALUE_LIST, hive=hive, plugin_name=self.name, reg_handler=registry_handler))
-
-        #def query(self, action: int, path: list, hive: registry_provider.registry_hive, reg_handler=None, settings=None, items=None, plugin_name=None, depth=None):
 
         self.parser.query(
             action=registry_action.QUERY_KEY,

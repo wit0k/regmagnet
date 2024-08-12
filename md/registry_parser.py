@@ -542,7 +542,11 @@ class registry_parser(object):
                 s = s.replace('<escape>', '')
             return s
 
+        lindex = 1
+
         for _path in path:
+            # print('-- %s of %s in %s -> Path: %s' % (lindex, len(path), hive.hive_file_path, _path))
+            lindex+=1
 
             ##- Wildcard is found:
             if any([s for s in [r'(?<!\\\\)regex\(', r'(?<!\\)\\\*', r'^\*\\'] if re.search(s, _path, re.IGNORECASE)]):
@@ -578,7 +582,9 @@ class registry_parser(object):
                             if action == registry_action.QUERY_VALUE:
                                 if len(current_path) == len(_path_elements) - 1:
                                     _dyn_path = '\\'.join(current_path + ['\\\\%s' % _path_elements[-1]])
-                                    return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings)
+                                    self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings, plugin_name=plugin_name)
+                                    continue
+                                    # return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings)
 
                             key_pattern = regex_pattern.group(1)
                             macro_pattern = regex_pattern.group(0)
@@ -605,9 +611,11 @@ class registry_parser(object):
 
                                     _dyn_path = '\\'.join(current_path + [sub_key] + _path_elements[len(current_path)+1:])
                                     if sub_key_index >= sub_key_count:
-                                        return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings)
+                                        self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings, plugin_name=plugin_name)
+                                        continue
+                                        #return self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings)
                                     else:
-                                        self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings)
+                                        self.query(action=action, path=_dyn_path, hive=hive, reg_handler=reg_handler, items=items, depth=depth, settings=settings, plugin_name=plugin_name)
                             else:
                                 logger.debug('Path Not Found or Empty Key - %s' % '\\'.join(current_path + ['%s' % key_pattern]))
                                 break

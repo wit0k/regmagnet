@@ -46,6 +46,24 @@ tests = []
 tests.extend(
     [
         test_obj(
+            description=r'Regex Pattern Test - Root wildcard and double regex',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query=r'*\regex(.{1,})\regex(.{2,})',
+            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
+            check_fn=check_list_length,
+            check_fn_params=[185],
+        ),
+        test_obj(
+            description=r'Query Key - Double Space',
+            verbose=False,
+            method=registry_action.QUERY_KEY,
+            query=r'Microsoft\Windows\Windows Error Reporting\RuntimeExceptionHelperModules',
+            hive_obj=r'hives\WINDEV2404EVAL\SOFTWARE.recovered',
+            check_fn=check_list_length,
+            check_fn_params=[1],
+        ),
+        test_obj(
             description=r'Regex Pattern Test - Query Value in keys with a double wildcard pattern and regex',
             verbose=False,
             method=registry_action.QUERY_VALUE,
@@ -53,15 +71,6 @@ tests.extend(
             hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
             check_fn=check_list_length,
             check_fn_params=[6],
-        ),
-        test_obj(
-            description=r'Regex Pattern Test - Root wildcard and double regex',
-            verbose=False,
-            method=registry_action.QUERY_KEY,
-            query=r'*\regex(.{1,})\regex(.{2,})',
-            hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
-            check_fn=check_list_length,
-            check_fn_params=[184],
         ),
         test_obj(
             description=r'Escape Test - Escaped Root, space in the path',
@@ -79,7 +88,7 @@ tests.extend(
             query=r'regex(.*)\regex(.{1,})\regex(.{2,})',
             hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
             check_fn=check_list_length,
-            check_fn_params=[184],
+            check_fn_params=[185],
         ),
         test_obj(
             description=r'Query Value - Direct path',
