@@ -49,14 +49,17 @@ class SD_OBJECT_TYPE(enum.Enum):
 class windows_security_descriptor(object): # https://github.com/xBlackSwan/winacl/blob/master/winacl/dtyp/security_descriptor.py
 
     obj_type = None
-    
-    def __init__(self, sd_bytes: bytes, obj_type=None):
+    local_sid_mapping = {}
+    def __init__(self, sd_bytes: bytes, obj_type=None, local_sid_mapping=None):
+
+        if local_sid_mapping is None: local_sid_mapping = {}
                 
         if obj_type is None:
             self.obj_type=SD_OBJECT_TYPE.SE_REGISTRY_KEY.value
         else:
             self.obj_type=obj_type.value
 
+        self.local_sid_mapping = local_sid_mapping
         self.sd_bytes = io.BytesIO(sd_bytes)
         self.sd = SECURITY_DESCRIPTOR.from_buffer(self.sd_bytes)
         self.sddl = '"%s"' % self.sd.to_sddl()
@@ -65,12 +68,12 @@ class windows_security_descriptor(object): # https://github.com/xBlackSwan/winac
         self.group_sid = self.get_group_sid()
         self.group_name = self.get_group_name() if isinstance(self.get_group_name(), str) else self.group_sid
         self.permissions = []
-        
+
+
         for ace in self.sd.Dacl.aces:
             ace_permissions = self.get_ace_mask_permissions(ace=ace, sd_obj_type=self.obj_type)
             self.permissions.append(ace_permissions)
-    
-    
+
     def json(self, flat=True, prefix=''):
         
         sd_data = {
@@ -108,7 +111,18 @@ class windows_security_descriptor(object): # https://github.com/xBlackSwan/winac
         return (self.sd.Owner.to_sddl())
 
     def get_owner_name(self):
-        return (self.sd.Owner.wellknown_sid_lookup(self.sd.Owner.to_sddl()))
+        sid = self.sd.Owner.to_sddl()
+        name = self.sd.Owner.wellknown_sid_lookup(sid)
+        if name is False: name = sid
+
+        if name == sid:
+            if self.local_sid_mapping.get(sid, None):
+                return self.local_sid_mapping.get(sid, None)
+            else:
+                return sid
+
+        else:
+            return name
     
     def get_group_sid(self):
         return (self.sd.Group.to_sddl())

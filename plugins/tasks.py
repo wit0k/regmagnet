@@ -31,6 +31,7 @@ import yara
 from md.time_class import days_ago
 from md.security_descriptor import security_descriptor, windows_security_descriptor, SD_OBJECT_TYPE
 from inspect import isfunction
+from md.registry_parser import registry_action, registry_action_settings
 
 import ctypes
 import os
@@ -236,9 +237,10 @@ class windows_task_registry_blobs(object):
     def __init__(self):
         pass
 
-    def get_security_descriptor(self, key, obj_type=None, return_bytes=False):
+    def get_security_descriptor(self, key, obj_type=None, return_bytes=False, mapping_table=None):
         
         sk_record = None
+        if mapping_table is None: mapping_table = {}
         
         if isinstance(key, bytes):
             sk_record = key
@@ -260,7 +262,7 @@ class windows_task_registry_blobs(object):
         if return_bytes:
             return  sk_record
         else:
-            return windows_security_descriptor(sk_record, obj_type)
+            return windows_security_descriptor(sk_record, obj_type, mapping_table)
             
     def json(self, flat=True):
         
@@ -746,7 +748,7 @@ class windows_task(object):
         }
         
         for sd_obj in [(self.registry_binary_blobs.SD, 'sd_'), (self.registry_binary_blobs.Key_Tasks_SD, 'sd_task_key_'), (self.registry_binary_blobs.Key_Tree_SD, 'sd_tree_key_')]:
-            if sd_obj[0] is not None:
+            if sd_obj[0] is not None and not isinstance(sd_obj[0], bytes):
                 sd_obj_json = sd_obj[0].json(flat=False, prefix='%s' % sd_obj[1])
                 for key, value in sd_obj_json.items():
                     if not '_nested_keys_' in key:
@@ -763,9 +765,7 @@ class windows_task(object):
                 variables.update(empty_sd)
          
         return variables           
-        
-        
-    
+
     def buffer(self, flat=False):
         return buffer.create(self.json(flat=False))
     
@@ -782,9 +782,12 @@ class windows_task(object):
         self.field_names.append(name)
         self.__setattr__(name, value)
 
-    def __init__(self, reg_items, field_names=None) -> None:
-        
+    def __init__(self, reg_items, field_names=None, mapping_table=None) -> None:
+
+        if mapping_table is None: mapping_table = {}
         if field_names is None: self.field_names = []
+
+        self.mapping_table = mapping_table
         self.registry_binary_blobs = windows_task_registry_blobs()
         self.reg_items = [] if reg_items is None else reg_items
         self.reg_item = reg_items[0] if len(reg_items) > 0 else None # Should be Tasks\{...} key
@@ -800,20 +803,25 @@ class windows_task(object):
         
         if getattr(self, 'Triggers', None):
             self.registry_binary_blobs.Triggers = windows_task_triggers(self.Triggers)
-        
+
+        """
+            Tasks Key -> Security Descriptor  
+            Tree Key -> Security Descriptor  
+            SD value content -> Security Descriptor  
+        """
         if getattr(self, 'SD', None):
             for reg_item in self.reg_items:
-                if 'Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item.get_path():
-                    self.registry_binary_blobs.SD = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT)
+                if r'Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item.get_path():
+                    self.registry_binary_blobs.SD = self.registry_binary_blobs.get_security_descriptor(self.SD, SD_OBJECT_TYPE.SE_FILE_OBJECT, False, self.mapping_table)
 
         for reg_item_ in self.reg_items:
                         
-            if 'Windows NT\CurrentVersion\Schedule\TaskCache\Tasks' in reg_item_.get_path():
+            if r'Windows NT\CurrentVersion\Schedule\TaskCache\Tasks' in reg_item_.get_path():
                 # print('Start Tasks SD ------------')
-                self.registry_binary_blobs.Key_Tasks_SD = self.registry_binary_blobs.get_security_descriptor(reg_item_.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
+                self.registry_binary_blobs.Key_Tasks_SD = self.registry_binary_blobs.get_security_descriptor(reg_item_.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY, False, self.mapping_table)
                 # print('End Tasks SD ------------')
-            elif 'Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item_.get_path():
-                self.registry_binary_blobs.Key_Tree_SD = self.registry_binary_blobs.get_security_descriptor(reg_item_.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY)
+            elif r'Windows NT\CurrentVersion\Schedule\TaskCache\Tree' in reg_item_.get_path():
+                self.registry_binary_blobs.Key_Tree_SD = self.registry_binary_blobs.get_security_descriptor(reg_item_.key, SD_OBJECT_TYPE.SE_REGISTRY_KEY, False, self.mapping_table)
 
     def scan(self):
         
@@ -827,7 +835,7 @@ class windows_task(object):
 
         # Location of Yara rules 
         # rules_folder = join(dirname(abspath(__file__)).rstrip('\/plugins\/tasks.py'), 'signatures\default')  # it cuts t??????
-        rules_folder = join(dirname(abspath(__file__)).strip('plugins'), 'signatures\default')
+        rules_folder = join(dirname(abspath(__file__)).strip('plugins'), r'signatures\default')
 
         
         if not isdir(rules_folder):
@@ -902,6 +910,9 @@ class windows_task(object):
                         logger.error('  [*] SIG_MATCH_FOUND: %s' % detection_name)
                         logger.error('   [-] TID: %s -> Description: %s' % (detection_data.get('mitre_tid', 'None'), detection_data.get('description', 'None')) )
                         logger.error('   [-] Action -> %s' % action)
+
+                    #logger.error(scan_variables)
+                    #logger.error(action.buffer())
             
                 self.detections = list(rule_matches.keys())
             except Exception as e:
@@ -924,8 +935,8 @@ class tasks(plugin):
     config_data = {}  # Contains the json data loaded from config_file (If any was specified and properly created)
 
     """ Plugin specific variables """
-    supported_hive_types = ["SOFTWARE", "USRCLASS"]  # Hive type must be upper case
-    # loaded_hives -> Is filled by PluginManager and contains list of all loaded plugins
+    supported_hive_types = ["SOFTWARE"]  # Hive type must be upper case
+    # loaded_hives -> Is filled by PluginManager and contains list of all loaded hives
 
     def __init__(self, params=None, parser=None):
         """ Init function allowing plugin specific parameters """
@@ -951,7 +962,7 @@ class tasks(plugin):
         
         plugin_args.add_argument("-r", "--raw", action='store_true', dest='raw_entries',
                                  required=False, default=False,
-                                 help="...")
+                                 help="Return non-parsed tasks")
 
 
         plugin_args.add_argument("-rh", "--registry-handler", type=str, action='store', dest='registry_handlers',
@@ -987,11 +998,36 @@ class tasks(plugin):
         self.load_provider()
 
         logger.debug('Plugin: %s -> Run(%s)' % (self.name, hive.hive_file_path))
-        
+
         # Continue processing only for plugin supported registry hives
         if not self.is_hive_supported(hive=hive):
             logger.warning('Unsupported hive type: %s' % hive.hive_type)
             return []
+
+        # Build SID mapping dict
+        # Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\S-1-5-21-576481235-4076958262-102498324-1000\\ProfileImagePath
+        # search;HKEY_LOCAL_MACHINE\\SOFTWARE;2024-07-29 13:34:58.335214;0;2;;Microsoft\\Windows\\CurrentVersion\\Group Policy\\DataStore\\S-1-5-21-576481235-4076958262-102498324-1000\\0;szName;WINDEV2404EVAL\\User
+        # search;HKEY_LOCAL_MACHINE\\SOFTWARE;2024-07-29 13:34:58.335214;0;2;;Microsoft\\Windows\\CurrentVersion\\Group Policy\\DataStore\\S-1-5-21-576481235-4076958262-102498324-1000\\0;szTargetName;User
+
+        sid_mapping = {}
+        profiles = []
+
+        self.parser.query(
+            items=profiles,
+            action=registry_action.QUERY_VALUE,
+            settings=registry_action_settings.DEFAULT_VALUE,
+            path=["Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\*\\ProfileImagePath"],
+            hive=hive,
+            reg_handler=registry_handler,
+            plugin_name=self.name,
+        )
+
+        for profile in profiles:
+            ProfileImagePath = profile.get_value(value_name='ProfileImagePath', default=None)
+            if ProfileImagePath:
+                profile_name = ProfileImagePath.split('\\')[-1]
+                sid = profile.get_path().split('\\')[-1]
+                sid_mapping[sid] = profile_name
 
         """ 
         _plugin_reg_handler = build_registry_handler(registry_parser=self.parser,
@@ -1004,11 +1040,15 @@ class tasks(plugin):
 
         # Query the key(s) specified
         # - Pull all Windows Scheduled Tasks from TaskCache"
-        tasks = self.parser.query_key_wd(
-            key_path=[r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\*"],
+        tasks = []
+        self.parser.query(
+            items=tasks,
+            action=registry_action.QUERY_KEY,
+            settings=registry_action_settings.DEFAULT_KEY,
+            path=[r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tasks\*"],
             hive=hive,
-            plugin_name=self.name,
             reg_handler=registry_handler,
+            plugin_name=self.name,
         )
 
         # -----------------------------------------------------------------------------------------------------------.
@@ -1020,12 +1060,16 @@ class tasks(plugin):
             
             # Query task tree/meta-data
             if reg_item.get_value('Path'):
-                tree = self.parser.query_key_wd(
-                        key_path=[r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree%s\*" % reg_item.get_value('Path')],
-                        hive=hive,
-                        plugin_name=self.name,
-                        reg_handler=registry_handler)
-
+                tree = []
+                self.parser.query(
+                    items=tree,
+                    action=registry_action.QUERY_KEY,
+                    settings=registry_action_settings.DEFAULT_KEY,
+                    path=[r"Microsoft\Windows NT\CurrentVersion\Schedule\TaskCache\Tree%s" % reg_item.get_value('Path')],
+                    hive=hive,
+                    reg_handler=registry_handler,
+                    plugin_name=self.name,
+                )
                 # Enrich Task's reg_item object with entries from Tree node
                 for linked_reg_item in tree:
                     
@@ -1046,12 +1090,8 @@ class tasks(plugin):
         # Iterate over all merged tasks     
         for reg_item in tasks:
 
-            # Debug
-            if '{2C32A994-F49C-4E27-B6F3-186BB5CB39B3}' in reg_item.get_path():
-                pass
-            
             # Create empty task object
-            task_obj = windows_task(reg_items=reg_item.linked_items)
+            task_obj = windows_task(reg_items=reg_item.linked_items, mapping_table=sid_mapping)
 
             if reg_item.has_values:
             
@@ -1079,9 +1119,10 @@ class tasks(plugin):
                         class_handlers = []
                         
                         # Time consuming task (Performed for each COM handler/action) - Query system and user class id
+                        # TO DO: ...
                         for _hive in self.loaded_hives:
                             class_handlers.extend(self.parser.query_value(value_path=[
-                                'Classes\CLSID\%s\InProcServer32\(default)' % _action.clsid, 'CLSID\%s\InProcServer32\(default)' % _action.clsid], 
+                                r'Classes\CLSID\%s\InProcServer32\(default)' % _action.clsid, r'CLSID\%s\InProcServer32\(default)' % _action.clsid],
                                 hive=_hive.get('hive'), plugin_name=self.name, reg_handler=None))
                         
                         # Update Handler payloads

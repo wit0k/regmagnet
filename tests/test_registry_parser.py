@@ -52,7 +52,7 @@ tests.extend(
             query=r'*\regex(.{1,})\regex(.{2,})',
             hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
             check_fn=check_list_length,
-            check_fn_params=[185],
+            check_fn_params=[1110],
         ),
         test_obj(
             description=r'Query Key - Double Space',
@@ -70,7 +70,7 @@ tests.extend(
             query=r'regmagnet\c\*\*\regex([a-b])',
             hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
             check_fn=check_list_length,
-            check_fn_params=[6],
+            check_fn_params=[12],
         ),
         test_obj(
             description=r'Escape Test - Escaped Root, space in the path',
@@ -88,7 +88,7 @@ tests.extend(
             query=r'regex(.*)\regex(.{1,})\regex(.{2,})',
             hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
             check_fn=check_list_length,
-            check_fn_params=[185],
+            check_fn_params=[1110],
         ),
         test_obj(
             description=r'Query Value - Direct path',
@@ -115,7 +115,7 @@ tests.extend(
             query=r'regmagnet\c\*\*\a',
             hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
             check_fn=check_list_length,
-            check_fn_params=[3],
+            check_fn_params=[6],
         ),
         test_obj(
             description=r'Regex Test - Last key has a pattern',
@@ -153,7 +153,7 @@ tests.extend(
             query=r'regmagnet\*\*',
             hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
             check_fn=check_list_length,
-            check_fn_params=[6],
+            check_fn_params=[12],
         ),
         test_obj(
             description=r'Multi-Wildcard Test - Query all sub-keys of regmagnet and their 1 level down subkeys (not recursive)',
@@ -162,7 +162,7 @@ tests.extend(
             query=r'regmagnet\*\*',
             hive_obj=r'hives\WINDEV2404EVAL\User\NTUSER.dat',
             check_fn=check_list_length,
-            check_fn_params=[3],
+            check_fn_params=[6],
         ),
         test_obj(
             description=r'Wildcard Test - Query all sub-keys of regmagnet key (not recursive)',
@@ -193,10 +193,10 @@ def run(parser_name):
 
     for test in tests:
         for hive_info in parser.parse_input_files([test.hive], skip_print=True, skip_hive_cache=False).values():
-            res = parser.query(action=test.method, path=test.query, hive=hive_info['hive'], reg_handler=None,
-                               settings=test.query_settings)
+            res = parser.query(action=test.method, path=test.query, hive=hive_info['hive'], reg_handler=None, settings=test.query_settings)
 
             if test.verbose == True:
+                print('Len: %s' % len(res))
                 for i in res:
                     if i.values:
                         for v in i.values:

@@ -39,6 +39,7 @@ logger = logging.getLogger('regmagnet')
      -- Based on https://github.com/hackthebox/business-ctf-2024/blob/main/forensics/%5BHard%5D%20Counter%20Defensive/README.md
     - Fix logging level issue
     - A plugin for https://learn.microsoft.com/en-us/windows/win32/shell/app-registration
+    - Plugin for CurrentControlSet\\Control\\Session Manager\\AppCompatCache
 """
 
 
