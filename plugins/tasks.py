@@ -911,8 +911,8 @@ class windows_task(object):
                         logger.error('   [-] TID: %s -> Description: %s' % (detection_data.get('mitre_tid', 'None'), detection_data.get('description', 'None')) )
                         logger.error('   [-] Action -> %s' % action)
 
-                    #logger.error(scan_variables)
-                    #logger.error(action.buffer())
+                    # logger.error(scan_variables)
+                    # logger.error(action.buffer())
             
                 self.detections = list(rule_matches.keys())
             except Exception as e:
@@ -1005,10 +1005,6 @@ class tasks(plugin):
             return []
 
         # Build SID mapping dict
-        # Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\S-1-5-21-576481235-4076958262-102498324-1000\\ProfileImagePath
-        # search;HKEY_LOCAL_MACHINE\\SOFTWARE;2024-07-29 13:34:58.335214;0;2;;Microsoft\\Windows\\CurrentVersion\\Group Policy\\DataStore\\S-1-5-21-576481235-4076958262-102498324-1000\\0;szName;WINDEV2404EVAL\\User
-        # search;HKEY_LOCAL_MACHINE\\SOFTWARE;2024-07-29 13:34:58.335214;0;2;;Microsoft\\Windows\\CurrentVersion\\Group Policy\\DataStore\\S-1-5-21-576481235-4076958262-102498324-1000\\0;szTargetName;User
-
         sid_mapping = {}
         profiles = []
 

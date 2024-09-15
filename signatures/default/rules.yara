@@ -85,7 +85,33 @@ rule SD_Permissions_Abuse {
         severity = "potential"
 
     condition:
-        not sd_owner_name iequals "LOCAL_SYSTEM" and not sd_owner_name iequals "BUILTIN_ADMINISTRATORS"
+        (not sd_owner_name iequals "LOCAL_SYSTEM" and not sd_owner_name iequals "BUILTIN_ADMINISTRATORS")
+}
+
+rule SD_Unresolved_Permissions {
+    meta:
+        author = "wit0k"
+        date = "2024-09-15"
+        description = "Triggers when SD permissions contain an unresolved SID"
+        reference = "..."
+        mitre_tid = "['T1053.005']"
+        severity = "potential"
+
+    condition:
+        sd_owner_name startswith "S-"
+}
+
+rule Non_Standard_Permissions {
+    meta:
+        author = "wit0k"
+        date = "2024-09-15"
+        description = "Triggers when key/sd value contains permissions other than ACCESS_ALLOWED"
+        reference = "..."
+        mitre_tid = "['T1053.005']"
+        severity = "potential"
+
+    condition:
+        not sd_permissions contains "ACCESS_ALLOWED" or not sd_task_key_permissions contains "ACCESS_ALLOWED" or not sd_tree_key_permissions contains "ACCESS_ALLOWED"
 }
 
 rule Key_Permissions_Abuse {
