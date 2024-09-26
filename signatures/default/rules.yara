@@ -2,9 +2,9 @@ rule Suspicious_Task_path {
     meta:
         author = "wit0k"
         date = "2023-05-26"
-        description = "Triggers when a windows scheduled task path is located within suspicious folders"
+        description = "Triggers when a windows scheduled task path is located in suspicious folders"
         reference = ""
-        mitre_tid = "['None']"
+        mitre_tid = "['T1053.005']"
         severity = "potential"
     
     strings:
@@ -23,7 +23,7 @@ rule COM_Hijack_multi_payloads {
     meta:
         author = "wit0k"
         date = "2023-05-04"
-        description = "Triggers when a windows scheduled task with COM-enabled handler has multiple COM payloads"
+        description = "Triggers when a scheduled task has an Action with COM-enabled handler having multiple COM payloads"
         reference = "https://attack.mitre.org/techniques/T1546/015/"
         mitre_tid = "['T1546.015','T1053.005']"
         severity = "critical"
@@ -68,18 +68,18 @@ rule Info_Recent_Manual_Trigger {
         date = "2023-12-14"
         description = "Triggers for Scheduled Tasks, executed without any Triggers within last 3 days"
         reference = "..."
-        mitre_tid = "['None']"
+        mitre_tid = "['T1053.005']"
         severity = "potential"
 
     condition:
         triggers_count == 0 and dynamic_last_run_time_epoch >= ep_3d_ago
 }
 
-rule SD_Permissions_Abuse {
+rule Unexpected_Task_Owner {
     meta:
         author = "wit0k"
         date = "2024-01-05"
-        description = "Triggers when a task key has abused permissions like the sd_owner_name is not default..."
+        description = "Triggers for tasks having non-default owner name (based on SD value)"
         reference = "..."
         mitre_tid = "['T1053.005']"
         severity = "potential"
@@ -88,11 +88,11 @@ rule SD_Permissions_Abuse {
         (not sd_owner_name iequals "LOCAL_SYSTEM" and not sd_owner_name iequals "BUILTIN_ADMINISTRATORS")
 }
 
-rule SD_Unresolved_Permissions {
+rule Unresolved_Task_Owner {
     meta:
         author = "wit0k"
         date = "2024-09-15"
-        description = "Triggers when SD permissions contain an unresolved SID"
+        description = "Triggers when SD permissions contain an unresolved owner sid"
         reference = "..."
         mitre_tid = "['T1053.005']"
         severity = "potential"
@@ -101,7 +101,7 @@ rule SD_Unresolved_Permissions {
         sd_owner_name startswith "S-"
 }
 
-rule Non_Standard_Permissions {
+rule Non_Standard_Task_Permissions {
     meta:
         author = "wit0k"
         date = "2024-09-15"
@@ -111,14 +111,15 @@ rule Non_Standard_Permissions {
         severity = "potential"
 
     condition:
-        not sd_permissions contains "ACCESS_ALLOWED" or not sd_task_key_permissions contains "ACCESS_ALLOWED" or not sd_tree_key_permissions contains "ACCESS_ALLOWED"
+        (not sd_permissions contains "ACCESS_ALLOWED" or not sd_task_key_permissions contains "ACCESS_ALLOWED" or not sd_tree_key_permissions contains "ACCESS_ALLOWED") or
+        (sd_permissions contains "ACCESS_DENIED" or sd_task_key_permissions contains "ACCESS_DENIED" or sd_tree_key_permissions contains "ACCESS_DENIED")
 }
 
-rule Key_Permissions_Abuse {
+rule Unexpected_Key_Permissions {
     meta:
         author = "wit0k"
         date = "2024-01-05"
-        description = "Triggers when a task key has abused permissions like a user SID is present in Tasks's Tasks or Tree key permissions..."
+        description = "Triggers when a scheduled task has abused permissions like a user SID is present in Tasks\<guid> or Tree\<path> key permissions"
         reference = "..."
         mitre_tid = "['T1053.005']"
         severity = "critical"
