@@ -4,7 +4,7 @@ __version__ = '0.9'
 #from inspect import isclass
 from doctest import debug
 import logging
-from msilib.schema import File
+#from msilib.schema import File
 from operator import index
 from re import S
 import struct
@@ -1110,8 +1110,14 @@ class tasks(plugin):
 
                     if _action.handler_type == windows_task.handler_type.COM_HANDLER and _action.clsid is not None:
                         # Query values:
-                        #  - SOFTWARE -> 'Classes\CLSID\%s\(Default)' -> Expected COM Handlers
-                        #  - USRCLASS -> 'CLSID\%s\(Default)'  -> Unexpected/User Handlers
+                        #  - SOFTWARE -> 'Classes\CLSID\%s\InProcServer32\(Default)' -> Expected COM Handlers
+                        #  - USRCLASS -> 'CLSID\%s\InProcServer32\(Default)'  -> Unexpected/User Handlers
+                        # Ultimately these shall be supported:
+                        # InprocServer/InprocServer32
+                        # LocalServer/LocalServer32
+                        # TreatAs
+                        # ProgID
+
                         class_handlers = []
                         
                         # Time consuming task (Performed for each COM handler/action) - Query system and user class id

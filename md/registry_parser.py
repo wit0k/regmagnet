@@ -108,7 +108,12 @@ class registry_parser(object):
                     fields = {'has_values': True}
 
                     for _attribute_name in _item.get_field_names():
-                        fields[_attribute_name] = getattr(_item, _attribute_name)
+                        _v = getattr(_item, _attribute_name, None)
+                        if _v is not None:
+                            fields[_attribute_name] = _v
+                        else:
+                            logger.warning('Failed to get attribute: %s from reg_item: %s' % (_attribute_name,_item.get_path()))
+                            fields[_attribute_name] = '%s - NOT FOUND' % _attribute_name
 
                     # Make sure there is 1 value per registry item ...
                     for value in _item.values:
