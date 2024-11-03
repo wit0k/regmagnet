@@ -39,8 +39,8 @@ logger = logging.getLogger('regmagnet')
     - A plugin for https://learn.microsoft.com/en-us/windows/win32/shell/app-registration
     - Plugin for CurrentControlSet\\Control\\Session Manager\\AppCompatCache
     - Fix the issue:
-    WARNING - THREAD-8056 - 2024-11-02 11:33:58,449 - registry_parser.py - dedup_items - Failed to get attribute: 253 from reg_item: grvopen\shell\open\command
-    WARNING - THREAD-8056 - 2024-11-02 11:33:58,449 - registry_parser.py - dedup_items - Failed to get attribute: () from reg_item: grvopen\shell\open\command
+    WARNING - THREAD-8056 - 2024-11-02 11:33:58,449 - registry_parser.py - dedup_items - Failed to get attribute: 253 from reg_item: grvopen\\shell\\open\\command
+    WARNING - THREAD-8056 - 2024-11-02 11:33:58,449 - registry_parser.py - dedup_items - Failed to get attribute: () from reg_item: grvopen\\shell\\open\\command
     
     -- root_cause: def get_field_names(self): possibly returns unexpected attributes...
 """
