@@ -491,8 +491,10 @@ class registry_provider(object):
                 #  Would print all attributes
                 for field, field_name in _attributes:
                     field_name = str(field_name)
-                    if not True in [field_name.startswith(prefix) for prefix in ['<', 'providers.', 'None']]:
-                        format_fields.append(field_name)
+
+                    if not True in [field_name.startswith(prefix) for prefix in ['(', '__', '<', 'providers.', 'None']]:
+                        if not re.match(r'^\d', field_name):
+                            format_fields.append(field_name)
 
             return format_fields
 

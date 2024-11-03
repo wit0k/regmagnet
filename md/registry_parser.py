@@ -390,8 +390,9 @@ class registry_parser(object):
             #  Would print all attributes
             for field, field_name in _attributes:
                 field_name = str(field_name)
-                if not True in [field_name.startswith(prefix) for prefix in ['<', 'providers.', 'None']]:
-                    self.format_fields.append(field_name)
+                if not True in [field_name.startswith(prefix) for prefix in ['(', '__', '<', 'providers.', 'None']]:
+                    if not re.match(r'^\d', field_name):
+                        self.format_fields.append(field_name)
 
         logger.debug('Loaded: %s' % self.format_fields)
 
