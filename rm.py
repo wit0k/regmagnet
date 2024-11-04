@@ -137,7 +137,7 @@ def main(argv):
 
     ###########################################################################
     #  Parse arguments to expected format                                     #
-    args = parse_args(args, parser, _Logger)
+    args = parse_args(args, parser, logger)
 
     #  Process WinReg Helpers
     if args.winreg_import_file:
