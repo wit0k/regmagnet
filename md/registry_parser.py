@@ -72,6 +72,12 @@ class registry_parser(object):
 
         print(CYELLOW + '[+] Loading Registry Provider: %s' % registry_provider_name + CEND)
         self.verbose_mode = verbose_mode
+
+        if self.verbose_mode:
+            logger.setLevel(level=logging.DEBUG)
+        else:
+            logger.setLevel(level=logging.INFO)
+
         self.reg = None
         self.provider = self.load_provider(provider_name=registry_provider_name)
 
