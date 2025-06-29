@@ -4,7 +4,7 @@
 import logging
 import csv
 import re
-import os
+# import os
 import glob
 import platform as _os
 
@@ -22,6 +22,7 @@ from enum import Flag, auto
 stdout.reconfigure(encoding='utf8')
 
 logger = logging.getLogger('regmagnet')
+
 
 class registry_action(object):
 
@@ -497,7 +498,7 @@ class registry_parser(object):
         if plugin_name is None: plugin_name = 'parser'
 
         depth += 1
-        logger.debug('registry_parser.query: %s -> Depth: %s' % (path, depth))
+        logger.debug('registry_parser.query: %s -> Depth: %d' % (path, depth))
 
         # Query Key
         if action == registry_action.QUERY_KEY:

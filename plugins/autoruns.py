@@ -75,7 +75,8 @@ QUERY_VALUE_LIST = [
     r"Microsoft\Windows\CurrentVersion\ShellServiceObjectDelayLoad",  # Need to check if value or a key
     r"regex(ControlSet00[0-4])\Control\LsaExtensionConfig\LsaSrv\Extensions", # https://twitter.com/0gtweet/status/1476286368385019906?t=hfWwMUjghwgeIFr9JuGtWQ&s=03
     r"regex(ControlSet00[0-4])\Services\regex(.*)\NetworkProvider\ProviderPath",  # https://github.com/gtworek/PSBits/tree/master/PasswordStealing/NPPSpy"
-    r"Software\Classes\CLSID\*\InprocServer32", # UsrClass or NTUSER -> https://blog.yaxser.io/posts/task-scheduler-com-handler
+    # r"Software\Classes\CLSID\*\InprocServer32\(default)", # UsrClass or NTUSER -> https://blog.yaxser.io/posts/task-scheduler-com-handler
+    r"CLSID\*\InprocServer32\(default)", # UsrClass or NTUSER -> https://blog.yaxser.io/posts/task-scheduler-com-handler
     r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\LastDisabledTime", # HKEY_USERS\.DEFAULT
     r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\State", # HKEY_USERS\.DEFAULT
     r"Software\Classes\Local Settings\Software\Microsoft\Windows\CurrentVersion\AppModel\SystemAppData\*\*\UserEnabledStartupOnce", # HKEY_USERS\.DEFAULT

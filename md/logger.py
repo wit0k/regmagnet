@@ -8,7 +8,7 @@ class Logger(object):
     def __init__(self):
 
         self.logger = logging.getLogger('regmagnet')
-        log_handler = WatchedFileHandler(__logfile__)
+        log_handler = WatchedFileHandler(__logfile__, 'w', 'utf-8')
         log_file_format = logging.Formatter(
             '%(levelname)s - THREAD-%(thread)d - %(asctime)s - %(filename)s - %(funcName)s - %(message)s')
         log_handler.setFormatter(log_file_format)
@@ -18,7 +18,7 @@ class Logger(object):
         log_console_format = logging.Formatter('%(message)s')
         console_handler.setFormatter(log_console_format)
         self.logger.addHandler(console_handler)
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.ERROR)
 
     def getLogger(self, LoggerName):
         return logging.getLogger(LoggerName)
