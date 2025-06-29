@@ -21,7 +21,11 @@ def parse_args(args, registry_parser, _logger):
         print(CYELLOW + '[+] Parsing script arguments' + CEND)
 
         if args.verbose_mode:
-            _logger.SetLoggingLevel('DEBUG')
+            _logger.setLevel(level=logging.DEBUG)
+            logger = logging.getLogger('regmagnet')
+        else:
+            _logger.setLevel(level=logging.INFO)
+            logger = logging.getLogger('regmagnet')
 
         if args.print_reg_handlers:
             registry_parser.print_registry_handlers()

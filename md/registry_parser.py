@@ -73,6 +73,12 @@ class registry_parser(object):
 
         print(CYELLOW + '[+] Loading Registry Provider: %s' % registry_provider_name + CEND)
         self.verbose_mode = verbose_mode
+
+        if self.verbose_mode:
+            logger.setLevel(level=logging.DEBUG)
+        else:
+            logger.setLevel(level=logging.INFO)
+
         self.reg = None
         self.provider = self.load_provider(provider_name=registry_provider_name)
 
@@ -109,7 +115,12 @@ class registry_parser(object):
                     fields = {'has_values': True}
 
                     for _attribute_name in _item.get_field_names():
-                        fields[_attribute_name] = getattr(_item, _attribute_name)
+                        _v = getattr(_item, _attribute_name, None)
+                        if _v is not None:
+                            fields[_attribute_name] = _v
+                        else:
+                            logger.warning('Failed to get attribute: %s from reg_item: %s' % (_attribute_name,_item.get_path()))
+                            fields[_attribute_name] = '%s - NOT FOUND' % _attribute_name
 
                     # Make sure there is 1 value per registry item ...
                     for value in _item.values:
@@ -386,8 +397,9 @@ class registry_parser(object):
             #  Would print all attributes
             for field, field_name in _attributes:
                 field_name = str(field_name)
-                if not True in [field_name.startswith(prefix) for prefix in ['<', 'providers.', 'None']]:
-                    self.format_fields.append(field_name)
+                if not True in [field_name.startswith(prefix) for prefix in ['(', '__', '<', 'providers.', 'None']]:
+                    if not re.match(r'^\d', field_name):
+                        self.format_fields.append(field_name)
 
         logger.debug('Loaded: %s' % self.format_fields)
 

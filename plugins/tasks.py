@@ -4,7 +4,7 @@ __version__ = '0.9'
 #from inspect import isclass
 from doctest import debug
 import logging
-from msilib.schema import File
+#from msilib.schema import File
 from operator import index
 from re import S
 import struct
@@ -911,8 +911,8 @@ class windows_task(object):
                         logger.error('   [-] TID: %s -> Description: %s' % (detection_data.get('mitre_tid', 'None'), detection_data.get('description', 'None')) )
                         logger.error('   [-] Action -> %s' % action)
 
-                    #logger.error(scan_variables)
-                    #logger.error(action.buffer())
+                    # logger.error(scan_variables)
+                    # logger.error(action.buffer())
             
                 self.detections = list(rule_matches.keys())
             except Exception as e:
@@ -1005,10 +1005,6 @@ class tasks(plugin):
             return []
 
         # Build SID mapping dict
-        # Microsoft\\Windows NT\\CurrentVersion\\ProfileList\\S-1-5-21-576481235-4076958262-102498324-1000\\ProfileImagePath
-        # search;HKEY_LOCAL_MACHINE\\SOFTWARE;2024-07-29 13:34:58.335214;0;2;;Microsoft\\Windows\\CurrentVersion\\Group Policy\\DataStore\\S-1-5-21-576481235-4076958262-102498324-1000\\0;szName;WINDEV2404EVAL\\User
-        # search;HKEY_LOCAL_MACHINE\\SOFTWARE;2024-07-29 13:34:58.335214;0;2;;Microsoft\\Windows\\CurrentVersion\\Group Policy\\DataStore\\S-1-5-21-576481235-4076958262-102498324-1000\\0;szTargetName;User
-
         sid_mapping = {}
         profiles = []
 
@@ -1114,8 +1110,14 @@ class tasks(plugin):
 
                     if _action.handler_type == windows_task.handler_type.COM_HANDLER and _action.clsid is not None:
                         # Query values:
-                        #  - SOFTWARE -> 'Classes\CLSID\%s\(Default)' -> Expected COM Handlers
-                        #  - USRCLASS -> 'CLSID\%s\(Default)'  -> Unexpected/User Handlers
+                        #  - SOFTWARE -> 'Classes\CLSID\%s\InProcServer32\(Default)' -> Expected COM Handlers
+                        #  - USRCLASS -> 'CLSID\%s\InProcServer32\(Default)'  -> Unexpected/User Handlers
+                        # Ultimately these shall be supported:
+                        # InprocServer/InprocServer32
+                        # LocalServer/LocalServer32
+                        # TreatAs
+                        # ProgID
+
                         class_handlers = []
                         
                         # Time consuming task (Performed for each COM handler/action) - Query system and user class id

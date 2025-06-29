@@ -17,9 +17,8 @@ from md.logger import Logger
 
 # Init logging
 _Logger = Logger()
-logger = logging.getLogger('regmagnet')
-
-
+logger = _Logger.getLogger('regmagnet')
+# logger = logging.getLogger('regmagnet')
 
 """ 
     Plugins\\Handlers:
@@ -28,16 +27,13 @@ logger = logging.getLogger('regmagnet')
 
     Enhancements: 
     - Implement --version
-    - Continue working on security_descriptor, to obtain the key_sddl field 
-    - Make sure that regex, cannot be used in conjunction with *
     - office/macro: Implement remaining stuff: https://ad-pdf.s3.amazonaws.com/Microsoft_Office_2007-2010_Registry_ArtifactsFINAL.pdf
     - Use the list of registry_item objects to create winreg data and sqlite data (instead of a list of dicts, coming from registry_item.items())
     - Onboard provider: https://github.com/EricZimmerman/Registry/
     - It could make sense to create a plugin for https://github.com/microsoft/AppModelSamples/tree/master, https://www.tmurgent.com/TmBlog/?p=3618, https://github.com/nasbench/Misc-Research/blob/main/Other/UWP-Applications-Persistence.md
     - Add CSV delimiter to parameters
-    - Add a plugin that analysis the file extensions (including HKCU, and printing their handlers)
+    - Add a plugin that analyse the file extensions (including HKCU, and printing their handlers)
      -- Based on https://github.com/hackthebox/business-ctf-2024/blob/main/forensics/%5BHard%5D%20Counter%20Defensive/README.md
-    - Fix logging level issue
     - A plugin for https://learn.microsoft.com/en-us/windows/win32/shell/app-registration
     - Plugin for CurrentControlSet\\Control\\Session Manager\\AppCompatCache
 """
@@ -141,7 +137,7 @@ def main(argv):
 
     ###########################################################################
     #  Parse arguments to expected format                                     #
-    args = parse_args(args, parser, _Logger)
+    args = parse_args(args, parser, logger)
 
     #  Process WinReg Helpers
     if args.winreg_import_file:

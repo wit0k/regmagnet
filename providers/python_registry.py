@@ -140,6 +140,8 @@ class python_registry(registry_provider):
     def parse_key_obj(self, key_obj, reg_handler, reg_item_obj=None, parse_security_descriptor=True) -> registry_provider.registry_key:
 
         key_path = key_obj.path()
+
+        # print('DEBUG: %s' % key_path)
         key_item = None
 
         if key_path:
