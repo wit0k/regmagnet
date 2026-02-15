@@ -1,5 +1,7 @@
 # RegMagnet 0.0.0.3 [BETA]
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/wit0k/regmagnet)
+
 * [Introduction](#introduction)
 * [Requirements](#minimum-requirements)
 * [Install](#install)
